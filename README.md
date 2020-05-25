@@ -4,10 +4,10 @@ Integration adding support for Sagemcom F@st routers to Home Assistant. [Support
 
 ### Manual installation
 
-Copy the `custom_components/sagemcom_f@st` to your `custom_components` folder. Install the Sagemcom F@st integration via the integrations config flow.
+Copy the `custom_components/sagemcom_f@st` to your `custom_components` folder. Reboot home assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ### HACS
-Add this repository to HACS.
+Add this repository to HACS, search for the `Sagemcom F@st` integration and choose install. Reboot home assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ```
 https://github.com/imicknl/ha-sagemcom-fast
