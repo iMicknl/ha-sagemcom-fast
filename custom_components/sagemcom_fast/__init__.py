@@ -42,24 +42,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     sagemcom = SagemcomClient(host, username, password, encryption_method)
 
     try:
-        device = await sagemcom.get_device_info(True)
-        _LOGGER.info(device["DeviceInfo"])
+        device_info = await sagemcom.get_device_info()
+        _LOGGER.info(device_info)
     except:
         _LOGGER.error("Error retrieving DeviceInfo")
         return False
 
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id]= sagemcom
+
     # Create router device
-    device_info = device["DeviceInfo"]
     device_registry = await dr.async_get_registry(hass)
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, device_info["MACAddress"])},
-        identifiers={(DOMAIN, device_info["SerialNumber"])},
-        manufacturer=device_info["Manufacturer"],
-        name=f'{device_info["Manufacturer"]} {device_info["ModelNumber"]}',
-        model=device_info["ModelName"],
-        sw_version=device_info["SoftwareVersion"],
+        connections={(dr.CONNECTION_NETWORK_MAC, device_info.mac_address)},
+        identifiers={(DOMAIN, device_info.serial_number)},
+        manufacturer=device_info.manufacturer,
+        name=f'{device_info.manufacturer} {device_info.model_number}',
+        model=device_info.model_name,
+        sw_version=device_info.software_version,
     )
 
     # Register components
@@ -82,7 +83,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     unload_ok = all(
         await asyncio.gather(
             *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
+                hass.config_entries.async_forward_entry_unload(
+                    entry, component)
                 for component in PLATFORMS
             ]
         )
