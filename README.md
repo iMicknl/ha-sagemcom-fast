@@ -2,7 +2,8 @@
 
 Integration adding support for Sagemcom F@st routers to Home Assistant. [Supported devices](https://github.com/imicknl/python-sagemcom-api#supported-devices).
 
-### Manual installation
+## Installation
+### Manual
 
 Copy the `custom_components/sagemcom_fast` to your `custom_components` folder. Reboot home assistant and install the Sagemcom F@st integration via the integrations config flow.
 
