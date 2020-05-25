@@ -1,0 +1,6 @@
+{
+    "name": "Sagemcom F@st",
+    "domains": ["device_tracker", "sensor"],
+    "homeassistant": "0.99.9",
+    "render_readme": "true"
+  }
