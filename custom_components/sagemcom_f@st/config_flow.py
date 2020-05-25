@@ -39,10 +39,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
 
-        await self.async_set_unique_id(user_input[CONF_HOST])
         self._abort_if_unique_id_configured()
 
         if user_input is not None:
+            await self.async_set_unique_id(user_input[CONF_HOST])
+
             try:
                 validation = await validate_input(self.hass, user_input)
                 return self.async_create_entry(title=validation["title"], data=user_input)
@@ -98,15 +99,15 @@ class OptionsFlow(config_entries.OptionsFlow):
         self.config_entry = config_entry
         self.options = dict(config_entry.options)
 
-        # Set default
-        if self.options[CONF_TRACK_WIRELESS_CLIENTS] is None: 
+        # Set default options, if not set
+        if self.options.get(CONF_TRACK_WIRELESS_CLIENTS) is None: 
             self.options[CONF_TRACK_WIRELESS_CLIENTS] = True
 
-        if self.options[CONF_TRACK_WIRED_CLIENTS] is None: 
+        if self.options.get(CONF_TRACK_WIRED_CLIENTS) is None: 
             self.options[CONF_TRACK_WIRED_CLIENTS] = True
 
     async def async_step_init(self, user_input=None):
-        """Manage the UniFi options."""
+        """Manage the Sagemcom F@st options."""
         
         # if self.show_advanced_options:
         #     return await self.async_step_device_tracker()
@@ -150,22 +151,25 @@ async def validate_input(hass: core.HomeAssistant, data):
     password = data[CONF_PASSWORD]
     encryption_method = data[CONF_ENCRYPTION_METHOD]
 
-    # Choose EncryptionMethod.MD5, EncryptionMethod.SHA512 or EncryptionMethod.Unknown
-    sagemcom = SagemcomClient(host, username, password, EncryptionMethod.MD5)
+    sagemcom = SagemcomClient(host, username, password, encryption_method)
+    
+    try:
+        logged_in = await sagemcom.login()
 
-    logged_in = await sagemcom.login()
+        if not logged_in:
+            raise InvalidAuth
 
-    # TODO Throw CannotConnect or raise InvalidAuth based on Sagemcom acceptions
-    if not logged_in:
+    except UnauthorizedException as exception:
         raise InvalidAuth
+    
+    except:
+        raise CannotConnect
 
     # Return info that you want to store in the config entry.
     return {"title": f"{host}"}
 
-
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
-
 
 class InvalidAuth(exceptions.HomeAssistantError):
     """Error to indicate there is invalid auth."""

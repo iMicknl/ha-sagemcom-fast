@@ -37,15 +37,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
-    encryption_method = data[CONF_ENCRYPTION_METHOD]
+    encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
 
     sagemcom = SagemcomClient(host, username, password, encryption_method)
 
     try:
-        device = await sagemcom.get_device_info()
+        device = await sagemcom.get_device_info(True)
         _LOGGER.info(device["DeviceInfo"])
     except:
-        _LOGGER.error("ERROR")
+        _LOGGER.error("Error retrieving DeviceInfo")
+        return False
 
     # Create router device
     device_info = device["DeviceInfo"]
@@ -69,11 +70,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     return True
 
-    async def async_livebox_reboot(call):
+    async def async_command_reboot(call):
         """Handle reboot service call."""
         await print("Reboot")
 
-    hass.services.async_register(DOMAIN, "reboot", async_livebox_reboot)
+    hass.services.async_register(DOMAIN, "reboot", async_command_reboot)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
