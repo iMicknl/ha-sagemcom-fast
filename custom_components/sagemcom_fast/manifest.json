@@ -8,9 +8,7 @@
   ],
   "ssdp": [
     {
-      "deviceType": "urn:schemas-wifialliance-org:device:WFADevice:1"
-    },
-    {
+      "deviceType": "urn:schemas-wifialliance-org:device:WFADevice:1",
       "manufacturer": "Sagemcom Broadband SAS"
     }
   ],
