@@ -7,9 +7,11 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_HOST, HTTP_BA
 from homeassistant.core import callback
 from homeassistant.components import ssdp
 from .const import CONF_ENCRYPTION_METHOD, CONF_TRACK_WIRELESS_CLIENTS, CONF_TRACK_WIRED_CLIENTS, DOMAIN
-from sagemcom_api import SagemcomClient, EncryptionMethod
+
+from sagemcom_api import SagemcomClient, EncryptionMethod, UnauthorizedException
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sagemcom."""
@@ -77,7 +79,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_ssdp(self, discovery_info):
         """Handle SSDP initiated config flow."""
-        _LOGGER.warning(f'Found discovery {discovery_info[ssdp.ATTR_SSDP_LOCATION]}')
+        _LOGGER.warning(
+            f'Found discovery {discovery_info[ssdp.ATTR_SSDP_LOCATION]}')
         _LOGGER.warning(discovery_info)
 
         # if any(
@@ -91,6 +94,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self._async_show_user_form()
 
+
 class OptionsFlow(config_entries.OptionsFlow):
     """Handle Sagemcom F@st options."""
 
@@ -100,15 +104,15 @@ class OptionsFlow(config_entries.OptionsFlow):
         self.options = dict(config_entry.options)
 
         # Set default options, if not set
-        if self.options.get(CONF_TRACK_WIRELESS_CLIENTS) is None: 
+        if self.options.get(CONF_TRACK_WIRELESS_CLIENTS) is None:
             self.options[CONF_TRACK_WIRELESS_CLIENTS] = True
 
-        if self.options.get(CONF_TRACK_WIRED_CLIENTS) is None: 
+        if self.options.get(CONF_TRACK_WIRED_CLIENTS) is None:
             self.options[CONF_TRACK_WIRED_CLIENTS] = True
 
     async def async_step_init(self, user_input=None):
         """Manage the Sagemcom F@st options."""
-        
+
         # if self.show_advanced_options:
         #     return await self.async_step_device_tracker()
 
@@ -140,6 +144,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         """Update config entry options."""
         return self.async_create_entry(title="", data=self.options)
 
+
 async def validate_input(hass: core.HomeAssistant, data):
     """Validate the user input allows us to connect.
 
@@ -151,25 +156,29 @@ async def validate_input(hass: core.HomeAssistant, data):
     password = data[CONF_PASSWORD]
     encryption_method = data[CONF_ENCRYPTION_METHOD]
 
-    sagemcom = SagemcomClient(host, username, password, encryption_method)
-    
-    try:
-        logged_in = await sagemcom.login()
+    print("VALIDATING")
 
-        if not logged_in:
+    try:
+        sagemcom = SagemcomClient(host, username, password, encryption_method)
+        login = await sagemcom.login()
+
+        if (login != True):
             raise InvalidAuth
 
-    except UnauthorizedException as exception:
+    except UnauthorizedException:
         raise InvalidAuth
-    
-    except:
+
+    except Exception as exception:
+        print(type(exception))
         raise CannotConnect
 
     # Return info that you want to store in the config entry.
     return {"title": f"{host}"}
 
+
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
+
 
 class InvalidAuth(exceptions.HomeAssistantError):
     """Error to indicate there is invalid auth."""
