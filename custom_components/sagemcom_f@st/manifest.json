@@ -1,0 +1,21 @@
+{
+  "domain": "sagemcom_f@st",
+  "name": "Sagemcom F@st",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/sagemcom_f@st",
+  "requirements": [
+    "git+https://github.com/iMicknl/python-sagemcom-api.git#sagemcom_api===0.1.0"
+  ],
+  "ssdp": [
+    {
+      "deviceType": "urn:schemas-wifialliance-org:device:WFADevice:1"
+    },
+    {
+      "manufacturer": "Sagemcom Broadband SAS"
+    }
+  ],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": ["@imick"]
+}

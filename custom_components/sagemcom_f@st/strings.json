@@ -1,0 +1,41 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect, please try again",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host",
+          "password": "Password",
+          "username": "Username",
+          "encryption_method": "Encryption Method"
+        },
+        "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/imicknl/python-sagemcom-api#supported-devices) list.",
+        "title": "Setup Sagemcom F@st device"
+      }
+    }
+  },
+  "device_automation": {
+    "action_type": {
+      "turn_off": "Turn off {entity_name}",
+      "turn_on": "Turn on {entity_name}"
+    }
+  },
+  "options": {
+    "step": {
+      "simple_options": {
+        "title": "Options",
+        "data": {
+          "track_wireless_clients": "Show devices connected via WiFi",
+          "track_wired_clients": "Show devices connected via cable"
+        }
+      }
+    }
+  }
+}
