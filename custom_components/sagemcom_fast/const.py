@@ -3,7 +3,7 @@ import logging
 from sagemcom_api import EncryptionMethod
 
 LOGGER = logging.getLogger(__package__)
-DOMAIN = "sagemcom_f@st"
+DOMAIN = "sagemcom_fast"
 
 CONF_ENCRYPTION_METHOD = 'encryption_method'
 CONF_TRACK_WIRELESS_CLIENTS = 'track_wireless_clients'

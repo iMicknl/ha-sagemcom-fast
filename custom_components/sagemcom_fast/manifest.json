@@ -1,5 +1,5 @@
 {
-  "domain": "sagemcom_f@st",
+  "domain": "sagemcom_fast",
   "name": "Sagemcom F@st",
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
