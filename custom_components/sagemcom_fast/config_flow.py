@@ -48,12 +48,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
-        return OptionsFlow(config_entry)
-
     async def async_validate_input(self, user_input):
         """Validate user credentials."""
         username = user_input.get(CONF_USERNAME) or ""
@@ -97,53 +91,3 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
-
-
-class OptionsFlow(config_entries.OptionsFlow):
-    """Handle Sagemcom F@st options."""
-
-    def __init__(self, config_entry):
-        """Initialize Sagemcom F@st options flow."""
-        self.config_entry = config_entry
-        self.options = dict(config_entry.options)
-
-        # Set default options, if not set
-        if self.options.get(CONF_TRACK_WIRELESS_CLIENTS) is None:
-            self.options[CONF_TRACK_WIRELESS_CLIENTS] = True
-
-        if self.options.get(CONF_TRACK_WIRED_CLIENTS) is None:
-            self.options[CONF_TRACK_WIRED_CLIENTS] = True
-
-    async def async_step_init(self, user_input=None):
-        """Manage the Sagemcom F@st options."""
-
-        # if self.show_advanced_options:
-        #     return await self.async_step_device_tracker()
-
-        return await self.async_step_simple_options()
-
-    async def async_step_simple_options(self, user_input=None):
-        """For simple Jack."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
-
-        return self.async_show_form(
-            step_id="simple_options",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_TRACK_WIRELESS_CLIENTS,
-                        default=self.options[CONF_TRACK_WIRELESS_CLIENTS],
-                    ): bool,
-                    vol.Optional(
-                        CONF_TRACK_WIRED_CLIENTS,
-                        default=self.options[CONF_TRACK_WIRED_CLIENTS],
-                    ): bool,
-                }
-            ),
-        )
-
-    async def _update_options(self):
-        """Update config entry options."""
-        return self.async_create_entry(title="", data=self.options)
