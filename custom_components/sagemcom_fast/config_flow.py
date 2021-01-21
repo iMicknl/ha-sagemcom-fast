@@ -23,6 +23,7 @@ from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginTimeoutException,
     UnauthorizedException,
 )
 from sagemcom_api.client import SagemcomClient
@@ -34,8 +35,8 @@ ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
 DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
+        vol.Optional(CONF_USERNAME): str,
+        vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
     }
 )
@@ -55,8 +56,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_validate_input(self, user_input):
         """Validate user credentials."""
-        username = user_input.get(CONF_USERNAME)
-        password = user_input.get(CONF_PASSWORD)
+        username = user_input.get(CONF_USERNAME) or ""
+        password = user_input.get(CONF_PASSWORD) or ""
         host = user_input.get(
             CONF_HOST
         )  # TODO Validate if host is valid ip address + port
@@ -87,8 +88,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except (TimeoutError, ClientError):
                 errors["base"] = "cannot_connect"
-            except AuthenticationException:
-                errors["base"] = "wrong_hash"
+            except LoginTimeoutException:
+                errors["base"] = "login_timeout"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 _LOGGER.exception(exception)

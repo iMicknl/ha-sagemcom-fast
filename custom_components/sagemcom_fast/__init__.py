@@ -10,7 +10,6 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_HOST,
-    HTTP_BAD_REQUEST,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -56,7 +55,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         host, username, password, EncryptionMethod(encryption_method), session
     )
 
-    hass.data[DOMAIN][entry.entry_id] = {"client": client}
+    hass.data[DOMAIN][entry.entry_id] = {
+        "client": client,
+        "devices": await client.get_hosts(only_active=True),
+    }
 
     # Fetch Gateway device information
     try:
