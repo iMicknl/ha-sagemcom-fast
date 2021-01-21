@@ -1,21 +1,33 @@
 """The Sagemcom integration."""
 import asyncio
 import logging
+from aiohttp.client import ClientTimeout
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 
 import voluptuous as vol
 
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_HOST, HTTP_BAD_REQUEST
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_HOST,
+    HTTP_BAD_REQUEST,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     config_validation as cv,
-    device_registry as dr,
     discovery,
 )
-
+from homeassistant.helpers import aiohttp_client
 from .const import DOMAIN, CONF_ENCRYPTION_METHOD
 
-from sagemcom_api import SagemcomClient, EncryptionMethod
+from sagemcom_api.enums import EncryptionMethod
+from sagemcom_api.exceptions import (
+    AccessRestrictionException,
+    AuthenticationException,
+    UnauthorizedException,
+)
+from sagemcom_api.client import SagemcomClient
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 _LOGGER = logging.getLogger(__name__)
@@ -39,28 +51,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     password = entry.data[CONF_PASSWORD]
     encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
 
-    sagemcom = SagemcomClient(host, username, password, encryption_method)
+    session = aiohttp_client.async_get_clientsession(hass)
+    client = SagemcomClient(
+        host, username, password, EncryptionMethod(encryption_method), session
+    )
 
+    hass.data[DOMAIN][entry.entry_id] = {"client": client}
+
+    # Fetch Gateway device information
     try:
-        device_info = await sagemcom.get_device_info()
-        _LOGGER.info(device_info)
-    except:
-        _LOGGER.error("Error retrieving DeviceInfo")
-        return False
+        gateway = await client.get_device_info()
+    except Exception as exception:
+        print(exception)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id]= sagemcom
-
-    # Create router device
-    device_registry = await dr.async_get_registry(hass)
+    # Create gateway device in Home Assistant
+    device_registry = await hass.helpers.device_registry.async_get_registry()
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(dr.CONNECTION_NETWORK_MAC, device_info.mac_address)},
-        identifiers={(DOMAIN, device_info.serial_number)},
-        manufacturer=device_info.manufacturer,
-        name=f'{device_info.manufacturer} {device_info.model_number}',
-        model=device_info.model_name,
-        sw_version=device_info.software_version,
+        connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
+        identifiers={(DOMAIN, gateway.serial_number)},
+        manufacturer=gateway.manufacturer,
+        name=f"{gateway.manufacturer} {gateway.model_number}",
+        model=gateway.model_name,
+        sw_version=gateway.software_version,
     )
 
     # Register components
@@ -80,11 +94,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a config entry."""
+
     unload_ok = all(
         await asyncio.gather(
             *[
-                hass.config_entries.async_forward_entry_unload(
-                    entry, component)
+                hass.config_entries.async_forward_entry_unload(entry, component)
                 for component in PLATFORMS
             ]
         )

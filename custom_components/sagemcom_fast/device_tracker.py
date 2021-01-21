@@ -1,4 +1,4 @@
-"""Support for device tracking of Sagemcom router."""
+"""Support for device tracking of client router."""
 
 import logging
 import re
@@ -11,15 +11,24 @@ from homeassistant.components.device_tracker import (
     SOURCE_TYPE_ROUTER,
 )
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_HOST, HTTP_BAD_REQUEST
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_HOST,
+    HTTP_BAD_REQUEST,
+)
 
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import CONF_ENCRYPTION_METHOD, CONF_TRACK_WIRELESS_CLIENTS, CONF_TRACK_WIRED_CLIENTS, DOMAIN
+from .const import (
+    CONF_ENCRYPTION_METHOD,
+    CONF_TRACK_WIRELESS_CLIENTS,
+    CONF_TRACK_WIRED_CLIENTS,
+    DOMAIN,
+)
 
-from sagemcom_api import SagemcomClient, EncryptionMethod
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,20 +45,20 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     registry = await entity_registry.async_get_registry(hass)
     known_entities: List[SagemcomScannerEntity] = []
 
-    sagemcom = hass.data[DOMAIN][config_entry.entry_id]
+    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
 
-    devices = await sagemcom.get_hosts()
+    devices = await client.get_hosts(only_active=True)
 
     last_results = []
 
     for device in devices:
 
         if options.get(CONF_TRACK_WIRELESS_CLIENTS) == False:
-            if device.interface == "WiFi":
+            if device.interface_type == "WiFi":
                 continue
 
         if options.get(CONF_TRACK_WIRED_CLIENTS) == False:
-            if device.interface == "Ethernet":
+            if device.interface_type == "Ethernet":
                 continue
 
         print(device)
@@ -61,7 +70,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 
 class SagemcomScannerEntity(ScannerEntity):
-    """Sagemcom router scanner entity."""
+    """client router scanner entity."""
 
     def __init__(self, device, parent):
         """ Constructor """
@@ -69,9 +78,10 @@ class SagemcomScannerEntity(ScannerEntity):
         self._device = device
         self._device_state_attributes = {
             "ip_address": self._device.ip_address,
-            "interface_type": self._device.interface,
-            "device_type": self._device.user_device_type or self._device.detected_device_type,
-            "address_source": self._device.address_source
+            "interface_type": self._device.interface_type,
+            "device_type": self._device.user_device_type
+            or self._device.detected_device_type,
+            "address_source": self._device.address_source,
         }
 
         self._via_device = parent
@@ -80,11 +90,15 @@ class SagemcomScannerEntity(ScannerEntity):
 
     @property
     def name(self) -> str:
-        return self._device.name or self._device.user_friendly_name or self._device.mac_address
+        return (
+            self._device.name
+            or self._device.user_friendly_name
+            or self._device.mac_address
+        )
 
     @property
     def unique_id(self) -> str:
-        return self._device.mac_address
+        return self._device.id
 
     @property
     def source_type(self) -> str:
@@ -102,7 +116,7 @@ class SagemcomScannerEntity(ScannerEntity):
         return {
             "name": self.name,
             "identifiers": {(DOMAIN, self.unique_id)},
-            "via_device": (DOMAIN, self._via_device)
+            "via_device": (DOMAIN, self._via_device),
         }
 
     @property
