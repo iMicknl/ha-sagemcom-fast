@@ -17,7 +17,6 @@
           "encryption_method": "Encryption Method"
         },
         "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/imicknl/python-sagemcom-api#supported-devices) list.",
-        "title": "Setup Sagemcom F@st device"
       }
     }
   },
