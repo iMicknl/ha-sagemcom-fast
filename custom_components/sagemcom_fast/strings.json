@@ -4,6 +4,7 @@
       "already_configured": "Device is already configured"
     },
     "error": {
+      "access_restricted": "Access restricted",
       "cannot_connect": "Failed to connect, please try again",
       "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error",

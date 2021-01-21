@@ -52,9 +52,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Validate user credentials."""
         username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
-        host = user_input.get(
-            CONF_HOST
-        )  # TODO Validate if host is valid ip address + port
+        host = user_input.get(CONF_HOST)
         encryption_method = user_input.get(CONF_ENCRYPTION_METHOD)
 
         async with SagemcomClient(
@@ -70,7 +68,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
 
-        if user_input is not None:
+        if user_input:
             await self.async_set_unique_id(user_input.get(CONF_HOST))
             self._abort_if_unique_id_configured()
 

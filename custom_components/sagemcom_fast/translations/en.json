@@ -4,9 +4,11 @@
       "already_configured": "Device is already configured"
     },
     "error": {
+      "access_restricted": "Access restricted",
       "cannot_connect": "Failed to connect, please try again",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "login_timeout" : "Request timed-out. This is mainly caused by the wrong encryption method."
     },
     "step": {
       "user": {
@@ -16,15 +18,8 @@
           "username": "Username",
           "encryption_method": "Encryption Method"
         },
-        "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/imicknl/python-sagemcom-api#supported-devices) list.",
-        "title": "Setup Sagemcom F@st device"
+        "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/imicknl/python-sagemcom-api#supported-devices) list."
       }
-    }
-  },
-  "device_automation": {
-    "action_type": {
-      "turn_off": "Turn off {entity_name}",
-      "turn_on": "Turn on {entity_name}"
     }
   },
   "options": {
