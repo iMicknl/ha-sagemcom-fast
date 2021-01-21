@@ -13,10 +13,7 @@ from homeassistant.const import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import (
-    config_validation as cv,
-    discovery,
-)
+from homeassistant.helpers import config_validation as cv, discovery, service
 from homeassistant.helpers import aiohttp_client
 from .const import DOMAIN, CONF_ENCRYPTION_METHOD
 
@@ -26,12 +23,16 @@ from sagemcom_api.exceptions import (
     AuthenticationException,
     UnauthorizedException,
 )
+from homeassistant.helpers import config_validation as cv, service
+
 from sagemcom_api.client import SagemcomClient
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["device_tracker"]
+
+SERVICE_REBOOT = "reboot"
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -85,13 +86,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             hass.config_entries.async_forward_entry_setup(entry, component)
         )
 
-    return True
-
     async def async_command_reboot(call):
         """Handle reboot service call."""
-        await print("Reboot")
+        client.reboot()
 
-    hass.services.async_register(DOMAIN, "reboot", async_command_reboot)
+    service.async_register_admin_service(
+        hass, DOMAIN, SERVICE_REBOOT, async_command_reboot
+    )
+
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):

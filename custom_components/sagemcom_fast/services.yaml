@@ -1,6 +1,2 @@
 reboot:
-  description: Reboot router.
-  fields:
-    url:
-      description: URL of router to reboot; optional when only one is configured.
-      example: http://192.168.11.1/
+  description: Reboot Sagemcom F@st device.
