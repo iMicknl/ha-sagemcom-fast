@@ -1,8 +1,7 @@
 """Support for device tracking of client router."""
 
 import logging
-from typing import Any, Dict, List, Optional, Set
-
+from typing import Any, Dict, List, Optional, Set, Counter
 from homeassistant.components.device_tracker import (
     DOMAIN as DEVICE_TRACKER_DOMAIN,
     SOURCE_TYPE_ROUTER,
@@ -29,58 +28,25 @@ _DEVICE_SCAN = f"{DEVICE_TRACKER_DOMAIN}/device_scan"
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
-    options = config_entry.options
-
     # Initialize already tracked entities
-    # tracked: Set[str] = set()
-    # registry = await entity_registry.async_get_registry(hass)
     # known_entities: List[SagemcomScannerEntity] = []
-    last_results = []
+    entities = []
 
     client = hass.data[DOMAIN][config_entry.entry_id]["client"]
-    devices = await client.get_hosts(only_active=True)
 
-    entity_registry = await hass.helpers.entity_registry.async_get_registry()
-    for entity in entity_registry.entities.values():
-        if (
-            entity.config_entry_id != config_entry.entry_id
-            or "-" not in entity.unique_id
-        ):
-            continue
+    # existing_devices = hass.data[DOMAIN][config_entry.entry_id]["devices"]
+    # for device in existing_devices:
+    #     device.active = False
+    #     # entity = SagemcomScannerEntity(device, config_entry.entry_id)
+    #     entities.append(device)
 
-        mac = ""
-        if entity.domain == "device_tracker":
-            mac = entity.unique_id.split("-", 1)[0]
+    new_devices = await client.get_hosts(only_active=True)
 
-            # if mac in self.api.clients or mac not in self.api.clients_all:
-            # continue
-
-        print(client)
-
-        # client = self.api.clients_all[mac]
-        # self.api.clients.process_raw([client.raw])
-        _LOGGER.debug(
-            "Restore disconnected client %s (%s)",
-            entity.entity_id,
-            client.mac,
-        )
-
-    for device in devices:
-
-        if options.get(CONF_TRACK_WIRELESS_CLIENTS) == False:
-            if device.interface_type == "WiFi":
-                continue
-
-        if options.get(CONF_TRACK_WIRED_CLIENTS) == False:
-            if device.interface_type == "Ethernet":
-                continue
-
-        # print(device)
-
+    for device in new_devices:
         entity = SagemcomScannerEntity(device, config_entry.entry_id)
-        last_results.append(entity)
+        entities.append(entity)
 
-    async_add_entities(last_results, update_before_add=True)
+    async_add_entities(entities, update_before_add=True)
 
 
 class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
