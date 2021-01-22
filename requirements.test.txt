@@ -7,4 +7,4 @@ pytest-cov<3.0.0
 pytest-homeassistant
 
 # from our manifest.json for our Custom Component
-sagemcom_api==1.0.0
+sagemcom_api==1.0.1

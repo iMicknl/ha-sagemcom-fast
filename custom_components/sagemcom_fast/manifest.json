@@ -4,7 +4,7 @@
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
   "requirements": [
-    "sagemcom_api===1.0.0"
+    "sagemcom_api===1.0.1"
   ],
   "ssdp": [
     {
@@ -19,5 +19,7 @@
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "codeowners": ["@imicknl"]
+  "codeowners": [
+    "@imicknl"
+  ]
 }

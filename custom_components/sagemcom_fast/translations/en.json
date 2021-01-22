@@ -8,7 +8,7 @@
       "cannot_connect": "Failed to connect, please try again",
       "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error",
-      "login_timeout" : "Request timed-out. This is mainly caused by the wrong encryption method."
+      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method."
     },
     "step": {
       "user": {
