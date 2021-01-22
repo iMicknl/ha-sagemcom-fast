@@ -1,25 +1,15 @@
 """The Sagemcom integration."""
 import asyncio
 import logging
-from aiohttp.client import ClientTimeout
+
 from aiohttp.client_exceptions import ClientError
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-
-import voluptuous as vol
-
-from homeassistant.const import (
-    CONF_SOURCE,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_HOST,
-)
-from homeassistant.config_entries import ConfigEntry, SOURCE_REAUTH
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_SOURCE, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, discovery, service
-from homeassistant.helpers import aiohttp_client
-from .const import DOMAIN, CONF_ENCRYPTION_METHOD
-
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import aiohttp_client, service
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
+from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -28,7 +18,7 @@ from sagemcom_api.exceptions import (
     UnauthorizedException,
 )
 
-from sagemcom_api.client import SagemcomClient
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

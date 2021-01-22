@@ -2,16 +2,12 @@
 
 import logging
 from typing import Any, Dict
-from homeassistant.components.device_tracker import (
-    DOMAIN as DEVICE_TRACKER_DOMAIN,
-    SOURCE_TYPE_ROUTER,
-)
+
+from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import (
-    DOMAIN,
-)
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +32,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
     """Sagemcom router scanner entity."""
 
     def __init__(self, device, parent):
-        """ Constructor """
+        """Initialize the device."""
         self._device = device
         self._via_device = parent
 
@@ -44,6 +40,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
 
     @property
     def name(self) -> str:
+        """Return the name of the device."""
         return (
             self._device.name
             or self._device.user_friendly_name
@@ -52,6 +49,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
 
     @property
     def unique_id(self) -> str:
+        """Return a unique ID."""
         return self._device.id
 
     @property

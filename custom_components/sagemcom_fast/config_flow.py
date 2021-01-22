@@ -2,31 +2,19 @@
 import logging
 
 from aiohttp import ClientError
-import voluptuous as vol
-from homeassistant import config_entries, core, exceptions
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_HOST,
-    HTTP_BAD_REQUEST,
-)
-from homeassistant.core import callback
-from .const import (
-    CONF_ENCRYPTION_METHOD,
-    CONF_TRACK_WIRELESS_CLIENTS,
-    CONF_TRACK_WIRED_CLIENTS,
-)
-
-from .const import DOMAIN  # pylint: disable=unused-import
-
+from homeassistant import config_entries
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginTimeoutException,
-    UnauthorizedException,
 )
-from sagemcom_api.client import SagemcomClient
+import voluptuous as vol
+
+from .const import CONF_ENCRYPTION_METHOD
+from .const import DOMAIN  # pylint: disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
