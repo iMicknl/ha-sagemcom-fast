@@ -1,90 +1,56 @@
-"""Support for device tracking of Sagemcom router."""
+"""Support for device tracking of client router."""
 
 import logging
-import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict
 
-import attr
-
-from homeassistant.components.device_tracker import (
-    DOMAIN as DEVICE_TRACKER_DOMAIN,
-    SOURCE_TYPE_ROUTER,
-)
+from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_HOST, HTTP_BAD_REQUEST
+from homeassistant.helpers.restore_state import RestoreEntity
 
-from homeassistant.core import callback
-from homeassistant.helpers import entity_registry
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-
-from .const import CONF_ENCRYPTION_METHOD, CONF_TRACK_WIRELESS_CLIENTS, CONF_TRACK_WIRED_CLIENTS, DOMAIN
-
-from sagemcom_api import SagemcomClient, EncryptionMethod
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-_DEVICE_SCAN = f"{DEVICE_TRACKER_DOMAIN}/device_scan"
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
-    options = config_entry.options
+    # TODO Handle status of disconnected devices
+    entities = []
+    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
 
-    # Initialize already tracked entities
-    tracked: Set[str] = set()
-    registry = await entity_registry.async_get_registry(hass)
-    known_entities: List[SagemcomScannerEntity] = []
+    new_devices = await client.get_hosts(only_active=True)
 
-    sagemcom = hass.data[DOMAIN][config_entry.entry_id]
-
-    devices = await sagemcom.get_hosts()
-
-    last_results = []
-
-    for device in devices:
-
-        if options.get(CONF_TRACK_WIRELESS_CLIENTS) == False:
-            if device.interface == "WiFi":
-                continue
-
-        if options.get(CONF_TRACK_WIRED_CLIENTS) == False:
-            if device.interface == "Ethernet":
-                continue
-
-        print(device)
-
+    for device in new_devices:
         entity = SagemcomScannerEntity(device, config_entry.entry_id)
-        last_results.append(entity)
+        entities.append(entity)
 
-    async_add_entities(last_results, update_before_add=True)
+    async_add_entities(entities, update_before_add=True)
 
 
-class SagemcomScannerEntity(ScannerEntity):
+class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
     """Sagemcom router scanner entity."""
 
     def __init__(self, device, parent):
-        """ Constructor """
-
+        """Initialize the device."""
         self._device = device
-        self._device_state_attributes = {
-            "ip_address": self._device.ip_address,
-            "interface_type": self._device.interface,
-            "device_type": self._device.user_device_type or self._device.detected_device_type,
-            "address_source": self._device.address_source
-        }
-
         self._via_device = parent
 
         super().__init__()
 
     @property
     def name(self) -> str:
-        return self._device.name or self._device.user_friendly_name or self._device.mac_address
+        """Return the name of the device."""
+        return (
+            self._device.name
+            or self._device.user_friendly_name
+            or self._device.mac_address
+        )
 
     @property
     def unique_id(self) -> str:
-        return self._device.mac_address
+        """Return a unique ID."""
+        return self._device.id
 
     @property
     def source_type(self) -> str:
@@ -100,13 +66,29 @@ class SagemcomScannerEntity(ScannerEntity):
     def device_info(self):
         """Return the device info."""
         return {
-            "name": self.name,
+            "default_name": self.name,
             "identifiers": {(DOMAIN, self.unique_id)},
-            "via_device": (DOMAIN, self._via_device)
+            "via_device": (DOMAIN, self._via_device),
         }
 
     @property
     def device_state_attributes(self) -> Dict[str, Any]:
-        """Get additional attributes related to entity state."""
+        """Return the state attributes of the device."""
+        attr = {"interface_type": self._device.interface_type}
 
-        return self._device_state_attributes or {}
+        return attr
+
+    @property
+    def ip_address(self) -> str:
+        """Return the primary ip address of the device."""
+        return self._device.ip_address or None
+
+    @property
+    def mac_address(self) -> str:
+        """Return the mac address of the device."""
+        return self._device.phys_address
+
+    @property
+    def hostname(self) -> str:
+        """Return hostname of the device."""
+        return self._device.user_host_name or self._device.host_name
