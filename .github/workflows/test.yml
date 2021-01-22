@@ -31,7 +31,7 @@ jobs:
       - name: Test with pytest
         run: |
           pytest \
-              --cov custom_components/tahoma \
+              --cov custom_components/sagemcom_fast \
               --cov-report=xml --cov-report=html \
               -o console_output_style=count \
               -p no:sugar \
