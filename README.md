@@ -1,6 +1,6 @@
 
 ![screenshot of a device detail page in Home Assistant](https://raw.githubusercontent.com/iMicknl/ha-sagemcom-fast/master/media/sagemcom_fast_device_page.png)
-[![GitHub release](https://img.shields.io/github/release/iMicknl/ha-sagemcom-fast.svg)](https://GitHub.com/iMicknl/ha-tahoma/releases/)
+[![GitHub release](https://img.shields.io/github/release/iMicknl/ha-sagemcom-fast.svg)](https://github.com/iMicknl/ha-sagemcom-fast/releases/)
 
 # Sagemcom F@st - Home Assistant (work in progress)
 
