@@ -31,7 +31,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     update_interval = config_entry.options.get(CONF_SCAN_INTERVAL)
     if update_interval is None:
         update_interval = SCAN_INTERVAL
-    _LOGGER.debug("Update Interval {}".format(update_interval))
 
     coordinator = SagecomDataUpdateCoordinator(
         hass,
@@ -43,7 +42,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     await coordinator.async_refresh()
 
     async_add_entities(
-        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id) for idx, device in coordinator.data.items()
+        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id) 
+        for idx, device in coordinator.data.items()
     )
 
 
