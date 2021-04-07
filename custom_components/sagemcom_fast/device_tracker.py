@@ -28,7 +28,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
     client = hass.data[DOMAIN][config_entry.entry_id]["client"]
-    update_interval = config_entry.options.get(CONF_SCAN_INTERVAL)
+    update_interval = config_entry.data.get(CONF_SCAN_INTERVAL)
     if update_interval is None:
         update_interval = SCAN_INTERVAL
 
@@ -37,7 +37,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         _LOGGER,
         name="sagem_com",
         client=client,
-        update_interval=update_interval,
+        update_interval=timedelta(seconds=update_interval),
     )
     await coordinator.async_refresh()
 
