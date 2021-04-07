@@ -14,7 +14,8 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN, OptionsFlow
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN
+from .options_flow import OptionsFlow
 
 _LOGGER = logging.getLogger(__name__)
 
