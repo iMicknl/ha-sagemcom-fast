@@ -1,5 +1,4 @@
 """Config flow for Sagemcom integration."""
-from datetime import timedelta
 import logging
 
 from aiohttp import ClientError
