@@ -24,13 +24,12 @@ from .config_flow import SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
-    # TODO Handle status of disconnected devices
-    entities = []
     client = hass.data[DOMAIN][config_entry.entry_id]["client"]
-    update_interval=config_entry.options.get(CONF_SCAN_INTERVAL)
+    update_interval = config_entry.options.get(CONF_SCAN_INTERVAL)
     if update_interval is None:
         update_interval = SCAN_INTERVAL
     _LOGGER.debug("Update Interval {}".format(update_interval))
@@ -47,6 +46,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(
         SagemcomScannerEntity(coordinator, idx, config_entry.entry_id) for idx, device in coordinator.data.items()
     )
+
 
 class SagecomDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Sagemcom data."""
