@@ -1,156 +1,88 @@
-"""Support for device tracking of client router."""
-
+"""Config flow for Sagemcom integration."""
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Optional
 
-import async_timeout
-from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
-from homeassistant.components.device_tracker.config_entry import ScannerEntity
-from homeassistant.const import CONF_SCAN_INTERVAL
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
+from aiohttp import ClientError
+from homeassistant import config_entries
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
 )
 from sagemcom_api.client import SagemcomClient
-from sagemcom_api.models import Device
+from sagemcom_api.enums import EncryptionMethod
+from sagemcom_api.exceptions import (
+    AccessRestrictionException,
+    AuthenticationException,
+    LoginTimeoutException,
+)
+import voluptuous as vol
 
-from .config_flow import SCAN_INTERVAL
-from .const import DOMAIN
+from .const import CONF_ENCRYPTION_METHOD
+from .const import DOMAIN  # pylint: disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
+ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up from config entry."""
+SCAN_INTERVAL = 10
 
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
-    update_interval = config_entry.options.get(CONF_SCAN_INTERVAL)
-    if update_interval is None:
-        update_interval = SCAN_INTERVAL
-
-    coordinator = SagecomDataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name="sagem_com",
-        client=client,
-        update_interval=timedelta(update_interval),
-    )
-    await coordinator.async_refresh()
-
-    async_add_entities(
-        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id)
-        for idx, device in coordinator.data.items()
-    )
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): str,
+        vol.Optional(CONF_USERNAME): str,
+        vol.Optional(CONF_PASSWORD): str,
+        vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
+        vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): int,
+    }
+)
 
 
-class SagecomDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Sagemcom data."""
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Sagemcom."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        logger: logging.Logger,
-        *,
-        name: str,
-        client: SagemcomClient,
-        update_interval: Optional[timedelta] = None,
-    ):
-        """Initialize update coordinator."""
-        super().__init__(
-            hass,
-            logger,
-            name=name,
-            update_interval=update_interval,
+    VERSION = 1
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+
+    async def async_validate_input(self, user_input):
+        """Validate user credentials."""
+        username = user_input.get(CONF_USERNAME) or ""
+        password = user_input.get(CONF_PASSWORD) or ""
+        host = user_input.get(CONF_HOST)
+        encryption_method = user_input.get(CONF_ENCRYPTION_METHOD)
+
+        async with SagemcomClient(
+            host, username, password, EncryptionMethod(encryption_method)
+        ) as client:
+            await client.login()
+            return self.async_create_entry(
+                title=host,
+                data=user_input,
+            )
+
+    async def async_step_user(self, user_input=None):
+        """Handle the initial step."""
+        errors = {}
+
+        if user_input:
+            await self.async_set_unique_id(user_input.get(CONF_HOST))
+            self._abort_if_unique_id_configured()
+
+            try:
+                return await self.async_validate_input(user_input)
+            except AccessRestrictionException:
+                errors["base"] = "access_restricted"
+            except AuthenticationException:
+                errors["base"] = "invalid_auth"
+            except (TimeoutError, ClientError):
+                errors["base"] = "cannot_connect"
+            except LoginTimeoutException:
+                errors["base"] = "login_timeout"
+            except Exception as exception:  # pylint: disable=broad-except
+                errors["base"] = "unknown"
+                _LOGGER.exception(exception)
+
+        return self.async_show_form(
+            step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
-        self.data = {}
-        self.hosts: Dict[str, Device] = {}
-        self._client = client
-
-    async def _async_update_data(self) -> Dict[str, Device]:
-        """Update hosts data."""
-        try:
-            async with async_timeout.timeout(10):
-                hosts = await self._client.get_hosts(only_active=True)
-                """Mark all device as non-active."""
-                for idx, host in self.hosts.items():
-                    host.active = False
-                    self.hosts[idx] = host
-                for host in hosts:
-                    self.hosts[host.id] = host
-                return self.hosts
-        except Exception as exception:
-            raise UpdateFailed(f"Error communicating with API: {exception}")
-
-
-class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
-    """Sagemcom router scanner entity."""
-
-    def __init__(self, coordinator, idx, parent):
-        """Initialize the device."""
-        super().__init__(coordinator)
-        self._idx = idx
-        self._via_device = parent
-
-    @property
-    def device(self):
-        """Return the device entity."""
-        return self.coordinator.data[self._idx]
-
-    @property
-    def name(self) -> str:
-        """Return the name of the device."""
-        return (
-            self.device.name
-            or self.device.user_friendly_name
-            or self.device.mac_address
-        )
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID."""
-        return self.device.id
-
-    @property
-    def source_type(self) -> str:
-        """Return the source type, eg gps or router, of the device."""
-        return SOURCE_TYPE_ROUTER
-
-    @property
-    def is_connected(self) -> bool:
-        """Get whether the entity is connected."""
-        return self.device.active or False
-
-    @property
-    def device_info(self):
-        """Return the device info."""
-        return {
-            "default_name": self.name,
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "via_device": (DOMAIN, self._via_device),
-        }
-
-    @property
-    def device_state_attributes(self) -> Dict[str, Any]:
-        """Return the state attributes of the device."""
-        attr = {"interface_type": self.device.interface_type}
-
-        return attr
-
-    @property
-    def ip_address(self) -> str:
-        """Return the primary ip address of the device."""
-        return self.device.ip_address or None
-
-    @property
-    def mac_address(self) -> str:
-        """Return the mac address of the device."""
-        return self.device.phys_address
-
-    @property
-    def hostname(self) -> str:
-        """Return hostname of the device."""
-        return self.device.user_host_name or self.device.host_name
