@@ -3,12 +3,8 @@ import logging
 
 from aiohttp import ClientError
 from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_SCAN_INTERVAL,
-    CONF_USERNAME,
-)
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import callback
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
@@ -18,14 +14,11 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD
-from .const import DOMAIN  # pylint: disable=unused-import
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN, OptionsFlow
 
 _LOGGER = logging.getLogger(__name__)
 
 ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
-
-SCAN_INTERVAL = 10
 
 DATA_SCHEMA = vol.Schema(
     {
@@ -33,7 +26,6 @@ DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
-        vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): int,
     }
 )
 
@@ -85,3 +77,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return OptionsFlow(config_entries)
