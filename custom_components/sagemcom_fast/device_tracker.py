@@ -42,7 +42,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     await coordinator.async_refresh()
 
     async_add_entities(
-        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id) 
+        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id)
         for idx, device in coordinator.data.items()
     )
 
