@@ -18,8 +18,8 @@ from homeassistant.helpers.update_coordinator import (
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device
 
-from .config_flow import SCAN_INTERVAL
 from .const import DOMAIN
+from .options_flow import SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
     client = hass.data[DOMAIN][config_entry.entry_id]["client"]
-    update_interval = config_entry.data.get(CONF_SCAN_INTERVAL)
+    update_interval = config_entry.options.get(CONF_SCAN_INTERVAL)
     if update_interval is None:
         update_interval = SCAN_INTERVAL
 
