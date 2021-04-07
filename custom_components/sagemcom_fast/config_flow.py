@@ -1,9 +1,11 @@
 """Config flow for Sagemcom integration."""
 import logging
+from datetime import timedelta
 
 from aiohttp import ClientError
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, CONF_SCAN_INTERVAL
+import homeassistant.helpers.config_validation as cv
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
@@ -20,12 +22,15 @@ _LOGGER = logging.getLogger(__name__)
 
 ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
 
+SCAN_INTERVAL = timedelta(seconds=10)
+
 DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Optional(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
+        vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): cv.time_period,
     }
 )
 
