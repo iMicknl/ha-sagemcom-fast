@@ -1,10 +1,17 @@
 """The Sagemcom integration."""
 import asyncio
+from datetime import timedelta
 import logging
 
 from aiohttp.client_exceptions import ClientError
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_SOURCE, CONF_USERNAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_SOURCE,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, service
@@ -19,6 +26,8 @@ from sagemcom_api.exceptions import (
 )
 
 from .const import CONF_ENCRYPTION_METHOD, DOMAIN
+from .device_tracker import SagecomDataUpdateCoordinator
+from .options_flow import SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,9 +89,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         _LOGGER.exception(exception)
         return False
 
+    update_interval = entry.options.get(CONF_SCAN_INTERVAL)
+    if update_interval is None:
+        update_interval = SCAN_INTERVAL
+
+    coordinator = SagecomDataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name="sagem_com",
+        client=client,
+        update_interval=timedelta(seconds=update_interval),
+    )
+
+    await coordinator.async_refresh()
+
     hass.data[DOMAIN][entry.entry_id] = {
-        "client": client,
-        "devices": await client.get_hosts(only_active=True),
+        "coordinator": coordinator,
+        "update_listener": entry.add_update_listener(update_listener),
     }
 
     # Create gateway device in Home Assistant
@@ -129,6 +152,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
     )
     if unload_ok:
+        hass.data[DOMAIN][entry.entry_id]["update_listener"]()
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
+    """Update when entry options update."""
+    if entry.options[CONF_SCAN_INTERVAL]:
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        new_update_interval = timedelta(seconds=entry.options[CONF_SCAN_INTERVAL])
+        coordinator.update_interval = new_update_interval
+
+        await coordinator.async_refresh()
