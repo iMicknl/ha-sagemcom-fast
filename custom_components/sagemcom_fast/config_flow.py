@@ -1,10 +1,15 @@
 """Config flow for Sagemcom integration."""
-import logging
 from datetime import timedelta
+import logging
 
 from aiohttp import ClientError
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, CONF_SCAN_INTERVAL
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
+)
 import homeassistant.helpers.config_validation as cv
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod

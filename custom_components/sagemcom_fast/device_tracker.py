@@ -1,26 +1,25 @@
 """Support for device tracking of client router."""
 
-import logging
 from datetime import timedelta
+import logging
 from typing import Any, Dict, Optional
-import async_timeout
 
-from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_SCAN_INTERVAL
+import async_timeout
 from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
+from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
     CoordinatorEntity,
+    DataUpdateCoordinator,
     UpdateFailed,
 )
-
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device
 
-from .const import DOMAIN
 from .config_flow import SCAN_INTERVAL
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,6 +97,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
 
     @property
     def device(self):
+        """Return the device entity."""
         return self.coordinator.data[self._idx]
 
     @property
