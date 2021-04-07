@@ -60,6 +60,7 @@ class SagecomDataUpdateCoordinator(DataUpdateCoordinator):
         client: SagemcomClient,
         update_interval: Optional[timedelta] = None,
     ):
+        """Initialize update coordinator"""
         super().__init__(
             hass,
             logger,
@@ -71,6 +72,7 @@ class SagecomDataUpdateCoordinator(DataUpdateCoordinator):
         self._client = client
 
     async def _async_update_data(self) -> Dict[str, Device]:
+        """Update hosts data"""
         try:
             async with async_timeout.timeout(10):
                 hosts = await self._client.get_hosts(only_active=True)
