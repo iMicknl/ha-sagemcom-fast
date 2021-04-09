@@ -1,11 +1,21 @@
 """Support for device tracking of client router."""
 
+from datetime import timedelta
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+import async_timeout
 from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+from sagemcom_api.client import SagemcomClient
+from sagemcom_api.models import Device
 
 from .const import DOMAIN
 
@@ -15,42 +25,80 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up from config entry."""
 
-    # TODO Handle status of disconnected devices
-    entities = []
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
 
-    new_devices = await client.get_hosts(only_active=True)
-
-    for device in new_devices:
-        entity = SagemcomScannerEntity(device, config_entry.entry_id)
-        entities.append(entity)
-
-    async_add_entities(entities, update_before_add=True)
+    async_add_entities(
+        SagemcomScannerEntity(coordinator, idx, config_entry.entry_id)
+        for idx, device in coordinator.data.items()
+    )
 
 
-class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
+class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
+    """Class to manage fetching Sagemcom data."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        logger: logging.Logger,
+        *,
+        name: str,
+        client: SagemcomClient,
+        update_interval: Optional[timedelta] = None,
+    ):
+        """Initialize update coordinator."""
+        super().__init__(
+            hass,
+            logger,
+            name=name,
+            update_interval=update_interval,
+        )
+        self.data = {}
+        self.hosts: Dict[str, Device] = {}
+        self._client = client
+
+    async def _async_update_data(self) -> Dict[str, Device]:
+        """Update hosts data."""
+        try:
+            async with async_timeout.timeout(10):
+                hosts = await self._client.get_hosts(only_active=True)
+                """Mark all device as non-active."""
+                for idx, host in self.hosts.items():
+                    host.active = False
+                    self.hosts[idx] = host
+                for host in hosts:
+                    self.hosts[host.id] = host
+                return self.hosts
+        except Exception as exception:
+            raise UpdateFailed(f"Error communicating with API: {exception}")
+
+
+class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     """Sagemcom router scanner entity."""
 
-    def __init__(self, device, parent):
+    def __init__(self, coordinator, idx, parent):
         """Initialize the device."""
-        self._device = device
+        super().__init__(coordinator)
+        self._idx = idx
         self._via_device = parent
 
-        super().__init__()
+    @property
+    def device(self):
+        """Return the device entity."""
+        return self.coordinator.data[self._idx]
 
     @property
     def name(self) -> str:
         """Return the name of the device."""
         return (
-            self._device.name
-            or self._device.user_friendly_name
-            or self._device.mac_address
+            self.device.name
+            or self.device.user_friendly_name
+            or self.device.mac_address
         )
 
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""
-        return self._device.id
+        return self.device.id
 
     @property
     def source_type(self) -> str:
@@ -60,7 +108,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
     @property
     def is_connected(self) -> bool:
         """Get whether the entity is connected."""
-        return self._device.active or False
+        return self.device.active or False
 
     @property
     def device_info(self):
@@ -74,21 +122,21 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity):
     @property
     def device_state_attributes(self) -> Dict[str, Any]:
         """Return the state attributes of the device."""
-        attr = {"interface_type": self._device.interface_type}
+        attr = {"interface_type": self.device.interface_type}
 
         return attr
 
     @property
     def ip_address(self) -> str:
         """Return the primary ip address of the device."""
-        return self._device.ip_address or None
+        return self.device.ip_address or None
 
     @property
     def mac_address(self) -> str:
         """Return the mac address of the device."""
-        return self._device.phys_address
+        return self.device.phys_address
 
     @property
     def hostname(self) -> str:
         """Return hostname of the device."""
-        return self._device.user_host_name or self._device.host_name
+        return self.device.user_host_name or self.device.host_name
