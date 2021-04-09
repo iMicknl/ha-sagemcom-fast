@@ -1,2 +1,3 @@
 reboot:
+  name: Reboot router
   description: Reboot Sagemcom F@st device.
