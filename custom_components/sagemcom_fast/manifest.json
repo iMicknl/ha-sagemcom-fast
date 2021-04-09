@@ -21,6 +21,7 @@
   "homekit": {},
   "dependencies": [],
   "codeowners": [
-    "@imicknl"
+    "@imicknl",
+    "@arunpoudel"
   ]
 }
