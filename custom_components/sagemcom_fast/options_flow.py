@@ -4,14 +4,14 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_SCAN_INTERVAL
 import voluptuous as vol
 
-SCAN_INTERVAL = 10
+DEFAULT_SCAN_INTERVAL = 10
 
 
 class OptionsFlow(config_entries.OptionsFlow):
     """Handle a options flow for Sagemcom."""
 
     def __init__(self, config_entry):
-        """Initialize Sagecom options flow."""
+        """Initialize Sagemcom options flow."""
         self._config_entry = config_entry
         self.options = dict(config_entry.options)
 
@@ -28,9 +28,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
                         default=self._config_entry.options.get(
-                            CONF_SCAN_INTERVAL, SCAN_INTERVAL
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
-                    ): int
+                    ): vol.All(cv.positive_int, vol.Clamp(min=MIN_UPDATE_INTERVAL))
                 }
             ),
         )

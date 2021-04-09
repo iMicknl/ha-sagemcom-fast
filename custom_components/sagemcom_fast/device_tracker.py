@@ -33,7 +33,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     )
 
 
-class SagecomDataUpdateCoordinator(DataUpdateCoordinator):
+class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Sagemcom data."""
 
     def __init__(
