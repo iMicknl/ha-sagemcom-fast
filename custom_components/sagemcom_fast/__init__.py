@@ -25,9 +25,8 @@ from sagemcom_api.exceptions import (
     UnauthorizedException,
 )
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN
+from .const import CONF_ENCRYPTION_METHOD, DEFAULT_SCAN_INTERVAL, DOMAIN
 from .device_tracker import SagemcomDataUpdateCoordinator
-from .options_flow import DEFAULT_SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -160,6 +159,8 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
         coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        coordinator.update_interval = timedelta(seconds=entry.options[CONF_SCAN_INTERVAL])
+        coordinator.update_interval = timedelta(
+            seconds=entry.options[CONF_SCAN_INTERVAL]
+        )
 
         await coordinator.async_refresh()
