@@ -8,7 +8,7 @@
       "cannot_connect": "Failed to connect, please try again",
       "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error",
-      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method."
+      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method"
     },
     "step": {
       "user": {
@@ -24,11 +24,10 @@
   },
   "options": {
     "step": {
-      "simple_options": {
+      "init": {
         "title": "Options",
         "data": {
-          "track_wireless_clients": "Show devices connected via WiFi",
-          "track_wired_clients": "Show devices connected via cable"
+          "update_interval": "Update interval (in seconds)"
         }
       }
     }

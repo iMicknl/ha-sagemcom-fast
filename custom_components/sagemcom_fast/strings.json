@@ -1,21 +1,21 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     },
     "error": {
       "access_restricted": "Access restricted",
-      "cannot_connect": "Failed to connect, please try again",
-      "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error",
-      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method."
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]",
+      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method"
     },
     "step": {
       "user": {
         "data": {
-          "host": "Host",
-          "password": "Password",
-          "username": "Username",
+          "host": "[%key:common::config_flow::data::host%]",
+          "password": "[%key:common::config_flow::data::password%]",
+          "username": "[%key:common::config_flow::data::username%]",
           "encryption_method": "Encryption Method"
         },
         "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices) list."
@@ -24,11 +24,10 @@
   },
   "options": {
     "step": {
-      "simple_options": {
+      "init": {
         "title": "Options",
         "data": {
-          "track_wireless_clients": "Show devices connected via WiFi",
-          "track_wired_clients": "Show devices connected via cable"
+          "update_interval": "Update interval (in seconds)"
         }
       }
     }
