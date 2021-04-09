@@ -26,7 +26,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=self.options.get(
+                        default=self._options.get(
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
                     ): vol.All(cv.positive_int, vol.Clamp(min=MIN_SCAN_INTERVAL))
