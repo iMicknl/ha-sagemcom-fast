@@ -51,9 +51,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     password = entry.data[CONF_PASSWORD]
     encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
 
-    session = aiohttp_client.async_get_clientsession(hass)
+    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=False)
     client = SagemcomClient(
-        host, username, password, EncryptionMethod(encryption_method), session
+        host,
+        username,
+        password,
+        EncryptionMethod(encryption_method),
+        session,
+        ssl=True,
     )
 
     try:
