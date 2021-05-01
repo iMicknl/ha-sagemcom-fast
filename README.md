@@ -31,7 +31,7 @@ The encryption method differs per device. Please refer to the table below to und
 Have a look at the table below for more information about supported devices.
 
 | Router Model          | Provider(s)          | Authentication Method | Comments                      |
-| --------------------- | -------------------- | --------------------- | ----------------------------- |
+|-----------------------|----------------------|-----------------------|-------------------------------|
 | Sagemcom F@st 3864    | Optus                | sha512                | username: guest, password: "" |
 | Sagemcom F@st 3865b   | Proximus (b-box3)    | md5                   |                               |
 | Sagemcom F@st 3890V3  | Delta / Zeelandnet   | md5                   |                               |
@@ -43,6 +43,7 @@ Have a look at the table below for more information about supported devices.
 | Sagemcom F@st 5370e   | Telia                | sha512                |                               |
 | Sagemcom F@st 5566    | Bell (Home Hub 3000) | md5                   | username: guest, password: "" |
 | Sagemcom F@st 5655V2  | MásMóvil             | md5                   |                               |
+| Sagemcom F@st 5657    |                      | md5                   |                               |
 | Speedport Pro         | Telekom              | md5                   |                               |
 
 > Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or pull request.
