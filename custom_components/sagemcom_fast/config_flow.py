@@ -45,7 +45,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         encryption_method = user_input.get(CONF_ENCRYPTION_METHOD)
 
         async with SagemcomClient(
-            host, username, password, EncryptionMethod(encryption_method)
+            host,
+            username,
+            password,
+            EncryptionMethod(encryption_method),
+            ssl=True,
+            verify_ssl=False,
         ) as client:
             await client.login()
             return self.async_create_entry(
