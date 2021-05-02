@@ -5,7 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
   "requirements": [
-    "git+https://github.com/iMicknl/python-sagemcom-api.git@feature/add_ssl_support#sagemcom_api==1.0.5beta1"
+    "sagemcom_api===1.0.5"
   ],
   "ssdp": [
     {
