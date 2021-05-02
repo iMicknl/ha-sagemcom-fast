@@ -11,12 +11,14 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginTimeoutException,
+    MaximumSessionCountException,
 )
 import voluptuous as vol
 
@@ -51,23 +53,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         password = user_input.get(CONF_PASSWORD) or ""
         host = user_input[CONF_HOST]
         encryption_method = user_input[CONF_ENCRYPTION_METHOD]
-
         ssl = user_input[CONF_SSL]
-        verify_ssl = user_input[CONF_VERIFY_SSL]
 
-        async with SagemcomClient(
+        session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
+
+        client = SagemcomClient(
             host,
             username,
             password,
             EncryptionMethod(encryption_method),
+            session,
             ssl=ssl,
-            verify_ssl=verify_ssl,
-        ) as client:
-            await client.login()
-            return self.async_create_entry(
-                title=host,
-                data=user_input,
-            )
+        )
+
+        await client.login()
+
+        return self.async_create_entry(
+            title=host,
+            data=user_input,
+        )
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -87,6 +91,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except LoginTimeoutException:
                 errors["base"] = "login_timeout"
+            except MaximumSessionCountException:
+                errors["base"] = "maximum_session_count"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 _LOGGER.exception(exception)

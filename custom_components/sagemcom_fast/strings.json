@@ -8,7 +8,8 @@
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "unknown": "[%key:common::config_flow::error::unknown%]",
-      "login_timeout": "Request timed-out. This could be caused by using the wrong encryption method, or using a (non) SSL connection."
+      "login_timeout": "Request timed-out. This could be caused by using the wrong encryption method, or using a (non) SSL connection.",
+      "maximum_session_count": "Maximum session count reached."
     },
     "step": {
       "user": {
