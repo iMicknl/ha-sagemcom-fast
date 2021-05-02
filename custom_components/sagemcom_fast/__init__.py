@@ -24,6 +24,7 @@ from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginTimeoutException,
+    MaximumSessionCountException,
     UnauthorizedException,
 )
 
@@ -88,10 +89,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return False
     except (TimeoutError, ClientError) as exception:
-        _LOGGER.error("cannot_connect")
-        raise ConfigEntryNotReady from exception
+        raise ConfigEntryNotReady("Failed to connect") from exception
+    except MaximumSessionCountException as exception:
+        raise ConfigEntryNotReady("Maximum session count reached") from exception
     except LoginTimeoutException:
-        _LOGGER.error("login_timeout")
+        _LOGGER.error("Request timed-out.")
         return False
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.exception(exception)
