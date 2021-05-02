@@ -23,5 +23,6 @@
   "codeowners": [
     "@imicknl",
     "@arunpoudel"
-  ]
+  ],
+  "iot_class": "local_polling"
 }
