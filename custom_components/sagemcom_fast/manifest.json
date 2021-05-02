@@ -17,11 +17,9 @@
       "manufacturer": "Sagemcom Broadband SAS"
     }
   ],
-  "zeroconf": [],
-  "homekit": {},
-  "dependencies": [],
   "codeowners": [
     "@imicknl",
     "@arunpoudel"
-  ]
+  ],
+  "iot_class": "local_polling"
 }
