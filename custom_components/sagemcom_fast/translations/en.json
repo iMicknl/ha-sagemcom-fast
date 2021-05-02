@@ -16,7 +16,9 @@
           "host": "Host",
           "password": "Password",
           "username": "Username",
-          "encryption_method": "Encryption Method"
+          "encryption_method": "Encryption Method",
+          "ssl": "Uses an SSL certificate",
+          "verify_ssl": "Verify SSL certificate"
         },
         "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices) list."
       }

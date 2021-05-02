@@ -3,7 +3,13 @@ import logging
 
 from aiohttp import ClientError
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SSL,
+    CONF_USERNAME,
+    CONF_VERIFY_SSL,
+)
 from homeassistant.core import callback
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
@@ -27,6 +33,8 @@ DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
+        vol.Required(CONF_SSL, default=False): bool,
+        vol.Required(CONF_VERIFY_SSL, default=False): bool,
     }
 )
 
@@ -41,16 +49,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Validate user credentials."""
         username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
-        host = user_input.get(CONF_HOST)
-        encryption_method = user_input.get(CONF_ENCRYPTION_METHOD)
+        host = user_input[CONF_HOST]
+        encryption_method = user_input[CONF_ENCRYPTION_METHOD]
+
+        ssl = user_input[CONF_SSL]
+        verify_ssl = user_input[CONF_VERIFY_SSL]
 
         async with SagemcomClient(
             host,
             username,
             password,
             EncryptionMethod(encryption_method),
-            ssl=True,
-            verify_ssl=False,
+            ssl=ssl,
+            verify_ssl=verify_ssl,
         ) as client:
             await client.login()
             return self.async_create_entry(

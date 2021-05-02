@@ -10,7 +10,9 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
     CONF_SOURCE,
+    CONF_SSL,
     CONF_USERNAME,
+    CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -50,15 +52,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
+    ssl = entry.data[CONF_SSL]
+    verify_ssl = entry.data[CONF_VERIFY_SSL]
 
-    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=False)
+    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
     client = SagemcomClient(
         host,
         username,
         password,
         EncryptionMethod(encryption_method),
         session,
-        ssl=True,
+        ssl=ssl,
     )
 
     try:
