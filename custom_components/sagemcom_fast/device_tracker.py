@@ -38,7 +38,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 @dataclass
 class SagemcomDevice:
-    """Sagemcom device"""
+    """Sagemcom device."""
 
     id: Optional[str] = None
     name: Optional[str] = None

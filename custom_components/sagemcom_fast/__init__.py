@@ -18,7 +18,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, service
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from homeassistant.helpers.entity_registry import async_get
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
@@ -37,15 +36,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["device_tracker"]
 
 SERVICE_REBOOT = "reboot"
-
-
-def get_entities(hass: HomeAssistant):
-    entities = []
-    entity_registry = async_get(hass)
-    for entity in entity_registry.entities.values():
-        if entity.platform == DOMAIN:
-            entities.append(entity)
-    return entities
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
