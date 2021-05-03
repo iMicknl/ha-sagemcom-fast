@@ -89,11 +89,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return False
     except (TimeoutError, ClientError) as exception:
+        _LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:
+        _LOGGER.error("Maximum session count reached")
         raise ConfigEntryNotReady("Maximum session count reached") from exception
     except LoginTimeoutException:
-        _LOGGER.error("Request timed-out.")
+        _LOGGER.error("Request timed-out")
         return False
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.exception(exception)
