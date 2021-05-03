@@ -108,12 +108,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
+
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
         _LOGGER,
         name="sagemcom_hosts",
         client=client,
         update_interval=timedelta(seconds=update_interval),
+        entry_id=config.entry_id,
     )
 
     await coordinator.async_refresh()

@@ -1,5 +1,7 @@
 """Support for device tracking of client router."""
 
+import dataclasses
+from dataclasses import dataclass
 from datetime import timedelta
 import logging
 from typing import Any, Dict, Optional
@@ -8,6 +10,7 @@ import async_timeout
 from homeassistant.components.device_tracker import SOURCE_TYPE_ROUTER
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_registry import async_get
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -33,8 +36,42 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     )
 
 
+@dataclass
+class SagemcomDevice:
+    """Sagemcom device"""
+    id: Optional[str] = None
+    name: Optional[str] = None
+    active: Optional[bool] = None
+    parent: Optional[str] = None
+    interface_type: Optional[str] = None
+    ip_address: Optional[str] = None
+    mac_address: Optional[str] = None
+    hostname: Optional[str] = None
+
+    def __init__(self, **kwargs):
+        """Override to accept more args than specified."""
+        names = {f.name for f in dataclasses.fields(self)}
+        for k, v in kwargs.items():
+            if k in names:
+                setattr(self, k, v)
+
+
 class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Sagemcom data."""
+
+    def _async_get_entities(self, hass: HomeAssistant) -> Dict[str, SagemcomDevice]:
+        entities: Dict[str, SagemcomDevice] = {}
+        entity_registry = async_get(hass)
+        for entity in entity_registry.entities.values():
+            print(entity)
+            if entity.platform == DOMAIN:
+                entities[entity.device_id] = SagemcomDevice(
+                    id=entity.unique_id,
+                    name=entity.name or entity.original_name,
+                    active=False,
+                    mac_address=entity.unique_id,
+                )
+        return entities
 
     def __init__(
         self,
@@ -52,8 +89,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             name=name,
             update_interval=update_interval,
         )
-        self.data = {}
-        self.hosts: Dict[str, Device] = {}
+        self.hosts: Dict[str, SagemcomDevice] = self._async_get_entities(hass)
         self._client = client
 
     async def _async_update_data(self) -> Dict[str, Device]:
@@ -70,7 +106,15 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     host.active = False
                     self.hosts[idx] = host
                 for host in hosts:
-                    self.hosts[host.id] = host
+                    self.hosts[host.id] = SagemcomDevice(
+                        id=host.id,
+                        name=host.name or host.user_friendly_name or host.mac_address,
+                        active=True,
+                        interface_type=host.interface_type,
+                        ip_address=host.ip_address,
+                        mac_address=host.phys_address,
+                        hostname=host.user_host_name or host.host_name,
+                    )
                 return self.hosts
         except Exception as exception:
             raise UpdateFailed(f"Error communicating with API: {exception}")
@@ -93,11 +137,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     @property
     def name(self) -> str:
         """Return the name of the device."""
-        return (
-            self.device.name
-            or self.device.user_friendly_name
-            or self.device.mac_address
-        )
+        return self.device.name
 
     @property
     def unique_id(self) -> str:
@@ -138,9 +178,9 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     @property
     def mac_address(self) -> str:
         """Return the mac address of the device."""
-        return self.device.phys_address
+        return self.device.mac_address
 
     @property
     def hostname(self) -> str:
         """Return hostname of the device."""
-        return self.device.user_host_name or self.device.host_name
+        return self.device.hostname
