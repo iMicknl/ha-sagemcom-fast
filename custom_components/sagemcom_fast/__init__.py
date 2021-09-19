@@ -118,18 +118,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         "update_listener": entry.add_update_listener(update_listener),
     }
 
+    # Get device info
+    mac_address = await client.get_value_by_xpath("Device/DeviceInfo/MACAddress")
+    serial_number = await client.get_value_by_xpath("Device/DeviceInfo/SerialNumber")
+    manufacturer = "Sagemcom"
+    model_number = await client.get_value_by_xpath("Device/DeviceInfo/ModelNumber")
+    model_name = await client.get_value_by_xpath("Device/DeviceInfo/ModelName")
+    software_version = await client.get_value_by_xpath(
+        "Device/DeviceInfo/SoftwareVersion"
+    )
+
     # Create gateway device in Home Assistant
-    gateway = await client.get_device_info()
     device_registry = await hass.helpers.device_registry.async_get_registry()
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
-        identifiers={(DOMAIN, gateway.serial_number)},
-        manufacturer=gateway.manufacturer,
-        name=f"{gateway.manufacturer} {gateway.model_number}",
-        model=gateway.model_name,
-        sw_version=gateway.software_version,
+        connections={(CONNECTION_NETWORK_MAC, mac_address)},
+        identifiers={(DOMAIN, serial_number)},
+        manufacturer=manufacturer,
+        name=f"{manufacturer} {model_number}",
+        model=model_name,
+        sw_version=software_version,
     )
 
     # Register components
