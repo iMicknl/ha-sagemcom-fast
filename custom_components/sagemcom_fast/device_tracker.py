@@ -60,7 +60,11 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         """Update hosts data."""
         try:
             async with async_timeout.timeout(10):
-                hosts = await self._client.get_hosts(only_active=True)
+                try:
+                    await self._client.login()
+                    hosts = await self._client.get_hosts(only_active=True)
+                finally:
+                    await self._client.logout()
                 """Mark all device as non-active."""
                 for idx, host in self.hosts.items():
                     host.active = False
