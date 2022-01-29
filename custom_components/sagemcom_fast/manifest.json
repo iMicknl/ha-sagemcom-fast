@@ -1,12 +1,12 @@
 {
   "domain": "sagemcom_fast",
   "name": "Sagemcom F@st",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
   "issue_tracker": "https://github.com/imicknl/ha-sagemcom-fast/issues",
   "requirements": [
-    "sagemcom_api===1.0.4"
+    "sagemcom_api===1.0.6"
   ],
   "ssdp": [
     {
@@ -18,9 +18,6 @@
       "manufacturer": "Sagemcom Broadband SAS"
     }
   ],
-  "zeroconf": [],
-  "homekit": {},
-  "dependencies": [],
   "codeowners": [
     "@imicknl",
     "@arunpoudel"
