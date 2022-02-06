@@ -8,7 +8,8 @@
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
       "unknown": "[%key:common::config_flow::error::unknown%]",
-      "login_timeout": "Request timed-out. This is mainly caused by selection of the wrong encryption method"
+      "login_timeout": "Request timed-out. This could be caused by using the wrong encryption method, or using a (non) SSL connection.",
+      "maximum_session_count": "Maximum session count reached."
     },
     "step": {
       "user": {
@@ -16,7 +17,9 @@
           "host": "[%key:common::config_flow::data::host%]",
           "password": "[%key:common::config_flow::data::password%]",
           "username": "[%key:common::config_flow::data::username%]",
-          "encryption_method": "Encryption Method"
+          "encryption_method": "Encryption Method",
+          "ssl": "[%key:common::config_flow::data::ssl%]",
+          "verify_ssl": "[%key:common::config_flow::data::verify_ssl%]"
         },
         "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices) list."
       }

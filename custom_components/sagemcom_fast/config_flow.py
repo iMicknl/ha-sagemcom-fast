@@ -3,14 +3,22 @@ import logging
 
 from aiohttp import ClientError
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SSL,
+    CONF_USERNAME,
+    CONF_VERIFY_SSL,
+)
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginTimeoutException,
+    MaximumSessionCountException,
 )
 import voluptuous as vol
 
@@ -27,6 +35,8 @@ DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
         vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
+        vol.Required(CONF_SSL, default=False): bool,
+        vol.Required(CONF_VERIFY_SSL, default=False): bool,
     }
 )
 
@@ -41,20 +51,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Validate user credentials."""
         username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
-        host = user_input.get(CONF_HOST)
-        encryption_method = user_input.get(CONF_ENCRYPTION_METHOD)
+        host = user_input[CONF_HOST]
+        encryption_method = user_input[CONF_ENCRYPTION_METHOD]
+        ssl = user_input[CONF_SSL]
 
-        async with SagemcomClient(
-            host, username, password, EncryptionMethod(encryption_method)
-        ) as client:
-            await client.login()
-            await client.logout()
+        session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
 
-            return self.async_create_entry(
-                title=host,
-                data=user_input,
-            )
+        client = SagemcomClient(
+            host,
+            username,
+            password,
+            EncryptionMethod(encryption_method),
+            session,
+            ssl=ssl,
+        )
 
+        await client.login()
+        await client.logout()
+
+        return self.async_create_entry(
+            title=host,
+            data=user_input,
+        )
+      
+      
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
@@ -73,6 +93,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except LoginTimeoutException:
                 errors["base"] = "login_timeout"
+            except MaximumSessionCountException:
+                errors["base"] = "maximum_session_count"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 _LOGGER.exception(exception)
