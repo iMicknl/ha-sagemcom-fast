@@ -10,7 +10,9 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
     CONF_SOURCE,
+    CONF_SSL,
     CONF_USERNAME,
+    CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -22,6 +24,7 @@ from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginTimeoutException,
+    MaximumSessionCountException,
     UnauthorizedException,
 )
 
@@ -50,10 +53,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
     encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
+    ssl = entry.data[CONF_SSL]
+    verify_ssl = entry.data[CONF_VERIFY_SSL]
 
-    session = aiohttp_client.async_get_clientsession(hass)
+    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
     client = SagemcomClient(
-        host, username, password, EncryptionMethod(encryption_method), session
+        host,
+        username,
+        password,
+        EncryptionMethod(encryption_method),
+        session,
+        ssl=ssl,
     )
 
     try:
@@ -79,10 +89,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return False
     except (TimeoutError, ClientError) as exception:
-        _LOGGER.error("cannot_connect")
-        raise ConfigEntryNotReady from exception
+        _LOGGER.error("Failed to connect")
+        raise ConfigEntryNotReady("Failed to connect") from exception
+    except MaximumSessionCountException as exception:
+        _LOGGER.error("Maximum session count reached")
+        raise ConfigEntryNotReady("Maximum session count reached") from exception
     except LoginTimeoutException:
-        _LOGGER.error("login_timeout")
+        _LOGGER.error("Request timed-out")
         return False
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.exception(exception)
