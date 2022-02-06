@@ -73,8 +73,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title=host,
             data=user_input,
         )
-      
-      
+
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
