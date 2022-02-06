@@ -101,6 +101,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         _LOGGER.exception(exception)
         return False
 
+    try:
+        gateway = await client.get_device_info()
+    finally:
+        await client.logout()
+
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SagemcomDataUpdateCoordinator(
@@ -119,7 +124,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     }
 
     # Create gateway device in Home Assistant
-    gateway = await client.get_device_info()
     device_registry = await hass.helpers.device_registry.async_get_registry()
 
     device_registry.async_get_or_create(

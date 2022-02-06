@@ -67,6 +67,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         await client.login()
+        await client.logout()
 
         return self.async_create_entry(
             title=host,
