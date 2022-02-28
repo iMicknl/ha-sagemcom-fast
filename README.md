@@ -14,7 +14,7 @@ Sagemcom F@st routers are used by many providers worldwide, but many of them did
 Copy the `custom_components/sagemcom_fast` to your `custom_components` folder. Reboot Home Assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ### HACS
-Add this repository to HACS, search for the `Sagemcom F@st` integration and choose install. Reboot Home Assistant and install the Sagemcom F@st integration via the integrations config flow.
+Add this repository as a custom repository to HACS as described [here](https://hacs.xyz/docs/faq/custom_repositories), search for the `Sagemcom F@st` integration and choose install. Reboot Home Assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ```
 https://github.com/imicknl/ha-sagemcom-fast
@@ -44,7 +44,7 @@ Have a look at the table below for more information about supported devices.
 | Sagemcom F@st 5566    | Bell (Home Hub 3000) | md5                   | username: guest, password: "" |
 | Sagemcom F@st 5655V2  | MásMóvil             | md5                   |                               |
 | Sagemcom F@st 5657    |                      | md5                   |                               |
-| Speedport Pro         | Telekom              | md5                   |                               |
+| Speedport Pro         | Telekom              | md5                   | username: admin               |
 
 > Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or pull request.
 
