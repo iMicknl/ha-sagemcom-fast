@@ -145,7 +145,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Handle gateway device services
     async def async_command_reboot(call):
         """Handle reboot service call."""
-        client.reboot()
+        await client.reboot()
 
     service.async_register_admin_service(
         hass, DOMAIN, SERVICE_REBOOT, async_command_reboot
