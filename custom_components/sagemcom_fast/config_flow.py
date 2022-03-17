@@ -1,6 +1,4 @@
 """Config flow for Sagemcom integration."""
-import logging
-
 from aiohttp import ClientError
 from homeassistant import config_entries
 from homeassistant.const import (
@@ -22,10 +20,8 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
-
-_LOGGER = logging.getLogger(__name__)
 
 ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
 
@@ -45,7 +41,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sagemcom."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     async def async_validate_input(self, user_input):
         """Validate user credentials."""
@@ -79,6 +74,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input:
+            # TODO change to gateway mac address or something more unique
             await self.async_set_unique_id(user_input.get(CONF_HOST))
             self._abort_if_unique_id_configured()
 
@@ -96,7 +92,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "maximum_session_count"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
-                _LOGGER.exception(exception)
+                LOGGER.exception(exception)
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
