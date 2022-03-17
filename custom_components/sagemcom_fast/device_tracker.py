@@ -95,7 +95,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
         )
 
     @property
-    def device(self):
+    def device(self) -> Device:
         """Return the device entity."""
         return self.coordinator.data[self._idx]
 
