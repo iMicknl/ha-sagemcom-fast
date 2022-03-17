@@ -1,5 +1,17 @@
 """Constants for the Sagemcom integration."""
-DOMAIN = "sagemcom_fast"
+from __future__ import annotations
+
+import logging
+from typing import Final
+
+from homeassistant.const import Platform
+
+DOMAIN: Final = "sagemcom_fast"
+LOGGER: logging.Logger = logging.getLogger(__package__)
+
+PLATFORMS: list[Platform] = [
+    Platform.DEVICE_TRACKER,
+]
 
 CONF_ENCRYPTION_METHOD = "encryption_method"
 CONF_TRACK_WIRELESS_CLIENTS = "track_wireless_clients"

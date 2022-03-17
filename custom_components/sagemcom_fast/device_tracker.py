@@ -2,17 +2,17 @@
 
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 import async_timeout
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
-    UpdateFailed,
 )
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device
@@ -58,22 +58,21 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Device]:
         """Update hosts data."""
-        try:
-            async with async_timeout.timeout(10):
-                try:
-                    await self._client.login()
-                    hosts = await self._client.get_hosts(only_active=True)
-                finally:
-                    await self._client.logout()
-                """Mark all device as non-active."""
-                for idx, host in self.hosts.items():
-                    host.active = False
-                    self.hosts[idx] = host
-                for host in hosts:
-                    self.hosts[host.id] = host
-                return self.hosts
-        except Exception as exception:
-            raise UpdateFailed(f"Error communicating with API: {exception}")
+        async with async_timeout.timeout(10):
+            try:
+                await self._client.login()
+                hosts = await self._client.get_hosts(only_active=True)
+            finally:
+                await self._client.logout()
+
+            # Mark all device as non-active
+            for idx, host in self.hosts.items():
+                host.active = False
+                self.hosts[idx] = host
+            for host in hosts:
+                self.hosts[host.id] = host
+
+            return self.hosts
 
 
 class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
@@ -85,24 +84,17 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
         self._idx = idx
         self._via_device = parent
 
-    @property
-    def device(self):
-        """Return the device entity."""
-        return self.coordinator.data[self._idx]
-
-    @property
-    def name(self) -> str:
-        """Return the name of the device."""
-        return (
+        self._attr_unique_id = self.device.id
+        self._attr_name = (
             self.device.name
             or self.device.user_friendly_name
             or self.device.mac_address
         )
 
     @property
-    def unique_id(self) -> str:
-        """Return a unique ID."""
-        return self.device.id
+    def device(self):
+        """Return the device entity."""
+        return self.coordinator.data[self._idx]
 
     @property
     def source_type(self) -> str:
@@ -124,9 +116,9 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
         }
 
     @property
-    def device_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, StateType]:
         """Return the state attributes of the device."""
-        attr = {"interface_type": self.device.interface_type}
+        attr: dict[str, StateType] = {"interface_type": self.device.interface_type}
 
         return attr
 
