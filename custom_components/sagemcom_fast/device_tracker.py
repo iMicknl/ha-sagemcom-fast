@@ -78,11 +78,10 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
 class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     """Sagemcom router scanner entity."""
 
-    def __init__(self, coordinator, idx, parent):
+    def __init__(self, coordinator, idx):
         """Initialize the device."""
         super().__init__(coordinator)
         self._idx = idx
-        self._via_device = parent
 
         self._attr_unique_id = self.device.id
         self._attr_name = (
