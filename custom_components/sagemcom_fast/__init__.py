@@ -51,7 +51,6 @@ class HomeAssistantSagemcomFastData:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up Sagemcom from a config entry."""
-
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
