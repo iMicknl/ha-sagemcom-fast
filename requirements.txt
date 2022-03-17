@@ -1,1 +1,1 @@
-pre-commit==2.5.0
+sagemcom_api==1.0.8
