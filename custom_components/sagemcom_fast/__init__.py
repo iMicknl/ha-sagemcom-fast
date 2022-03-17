@@ -1,6 +1,7 @@
 """The Sagemcom integration."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import timedelta
 
 from aiohttp.client_exceptions import ClientError
@@ -26,6 +27,7 @@ from sagemcom_api.exceptions import (
     MaximumSessionCountException,
     UnauthorizedException,
 )
+from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from .const import (
     CONF_ENCRYPTION_METHOD,
@@ -37,6 +39,14 @@ from .const import (
 from .device_tracker import SagemcomDataUpdateCoordinator
 
 SERVICE_REBOOT = "reboot"
+
+
+@dataclass
+class HomeAssistantSagemcomFastData:
+    """Nest Protect data stored in the Home Assistant data object."""
+
+    coordinator: SagemcomDataUpdateCoordinator
+    gateway: GatewayDeviceInfo | None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -89,14 +99,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
-        "coordinator": coordinator,
-    }
-
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-
     # Many users face issues while retrieving Device Info
     # So don't make this fail the start-up
+    gateway = None
+
     try:
         gateway = await client.get_device_info()
 
@@ -117,7 +123,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     finally:
         await client.logout()
 
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
+        coordinator=coordinator, gateway=gateway
+    )
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     # Handle gateway device services
     # TODO move to button entity
@@ -134,9 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN][entry.entry_id]["update_listener"]()
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok

@@ -7,7 +7,9 @@ from typing import Dict, Optional
 import async_timeout
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import (
@@ -17,17 +19,21 @@ from homeassistant.helpers.update_coordinator import (
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device
 
+from . import HomeAssistantSagemcomFastData
 from .const import DOMAIN
 
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up from config entry."""
-
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+    data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        SagemcomScannerEntity(coordinator, idx)
-        for idx, device in coordinator.data.items()
+        SagemcomScannerEntity(data.coordinator, idx)
+        for idx, device in data.coordinator.data.items()
     )
 
 
