@@ -124,7 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     }
 
     # Create gateway device in Home Assistant
-    device_registry = await hass.helpers.device_registry.async_get_registry()
+    device_registry = hass.helpers.device_registry.async_get(hass)
 
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
