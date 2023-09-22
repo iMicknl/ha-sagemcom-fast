@@ -118,7 +118,7 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     def device_info(self):
         """Return the device info."""
         return {
-            "default_name": self.name,
+            "name": self.name,
             "identifiers": {(DOMAIN, self.unique_id)},
             "via_device": (DOMAIN, self._via_device),
         }
