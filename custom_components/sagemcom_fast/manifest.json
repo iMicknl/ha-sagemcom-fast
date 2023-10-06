@@ -1,7 +1,7 @@
 {
   "domain": "sagemcom_fast",
   "name": "Sagemcom F@st",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
   "issue_tracker": "https://github.com/imicknl/ha-sagemcom-fast/issues",
