@@ -1,4 +1,4 @@
 -r requirements.txt
 
-homeassistant==2022.3.3
+homeassistant==2023.9.0
 pre-commit==2.5.0
