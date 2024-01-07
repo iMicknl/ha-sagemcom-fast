@@ -131,7 +131,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# HA Config directory for local testing
-/Config/
-
 **/.DS_Store
+
+# DevContainer
+config
+!.vscode/tasks.json
+!.vscode/launch.json
