@@ -8,6 +8,11 @@ This integration adds support for Sagemcom F@st routers to Home Assistant. Curre
 
 Sagemcom F@st routers are used by many providers worldwide, but many of them did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell and the Smart Hub from BT.
 
+## Features
+
+- Device Tracker, to track connected devices to your router (WiFi and Ethernet)
+- Reboot button, to reboot your gateway from Home Assistant
+
 ## Known limitations / issues
 
 Since this integration is only used by a few users, not much time has been spent on the development lately. There are currently some known limitations and bugs. Contributions are welcome!
