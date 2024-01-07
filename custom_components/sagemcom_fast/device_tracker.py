@@ -29,7 +29,9 @@ class SagemcomScannerEntity(
 ):
     """Sagemcom router scanner entity."""
 
-    def __init__(self, coordinator: SagemcomDataUpdateCoordinator, idx, parent) -> None:
+    def __init__(
+        self, coordinator: SagemcomDataUpdateCoordinator, idx: str, parent: str
+    ) -> None:
         """Initialize the device."""
         super().__init__(coordinator)
         self._idx = idx
