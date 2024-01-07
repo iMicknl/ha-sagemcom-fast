@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Home Assistant with Sagemcom Fast",
+        "type": "python",
+        "request": "launch",
+        "python": "/usr/local/bin/python",
+        "module": "homeassistant",
+        "cwd": "${workspaceFolder}",
+        "justMyCode": false,
+        "args": ["--debug", "-c", "config"]
+      }
+    ]
+}

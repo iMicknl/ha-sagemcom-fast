@@ -1,5 +1,4 @@
-
-![screenshot of a device detail page in Home Assistant](https://raw.githubusercontent.com/iMicknl/ha-sagemcom-fast/master/media/sagemcom_fast_device_page.png)
+![screenshot of a device detail page in Home Assistant](https://raw.githubusercontent.com/iMicknl/ha-sagemcom-fast/main/media/sagemcom_fast_device_page.png)
 [![GitHub release](https://img.shields.io/github/release/iMicknl/ha-sagemcom-fast.svg)](https://github.com/iMicknl/ha-sagemcom-fast/releases/)
 [![HA integration usage](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.sagemcom_fast.total)](https://analytics.home-assistant.io/custom_integrations.json)
 
@@ -10,11 +9,13 @@ This integration adds support for Sagemcom F@st routers to Home Assistant. Curre
 Sagemcom F@st routers are used by many providers worldwide, but many of them did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell and the Smart Hub from BT.
 
 ## Installation
+
 ### Manual
 
 Copy the `custom_components/sagemcom_fast` to your `custom_components` folder. Reboot Home Assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ### HACS
+
 Add this repository as a custom repository to HACS as described [here](https://hacs.xyz/docs/faq/custom_repositories), search for the `Sagemcom F@st` integration and choose install. Reboot Home Assistant and install the Sagemcom F@st integration via the integrations config flow.
 
 ```
@@ -23,7 +24,7 @@ https://github.com/imicknl/ha-sagemcom-fast
 
 ## Usage
 
-This integration can only be confgured via the Config Flow. Go to `Configuration -> Integrations -> Add Integration` and choose Sagemcom F@st. The prompt will ask you for your credentials. Please note that some routers require authentication, where others can login with `guest` username and an empty password.
+This integration can only be configured via the Config Flow. Go to `Configuration -> Integrations -> Add Integration` and choose Sagemcom F@st. The prompt will ask you for your credentials. Please note that some routers require authentication, where others can login with `guest` username and an empty password.
 
 The encryption method differs per device. Please refer to the table below to understand which option to select. If your device is not listed, please try both methods one by one.
 
@@ -32,7 +33,7 @@ The encryption method differs per device. Please refer to the table below to und
 Have a look at the table below for more information about supported devices.
 
 | Router Model          | Provider(s)          | Authentication Method | Comments                      |
-|-----------------------|----------------------|-----------------------|-------------------------------|
+| --------------------- | -------------------- | --------------------- | ----------------------------- |
 | Sagemcom F@st 3864    | Optus                | sha512                | username: guest, password: "" |
 | Sagemcom F@st 3865b   | Proximus (b-box3)    | md5                   |                               |
 | Sagemcom F@st 3890V3  | Delta / Zeelandnet   | md5                   |                               |
@@ -61,7 +62,6 @@ logger:
   logs:
     custom_components.sagemcom_fast: debug
 ```
-
 
 ### Device not supported / working correctly
 

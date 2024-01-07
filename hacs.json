@@ -1,7 +1,5 @@
 {
     "name": "Sagemcom F@st",
-    "domains": ["device_tracker", "sensor"],
-    "homeassistant": "0.115.0",
-    "render_readme": "true",
-    "iot_class": "Local Polling"
-  }
+    "homeassistant": "2024.1.2",
+    "render_readme": true
+}
