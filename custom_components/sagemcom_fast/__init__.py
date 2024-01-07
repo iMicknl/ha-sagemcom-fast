@@ -46,14 +46,6 @@ class HomeAssistantSagemcomFastData:
     gateway: GatewayDeviceInfo
 
 
-@dataclass
-class HomeAssistantSagemcomFastData:
-    """SagemcomFast data stored in the Home Assistant data object."""
-
-    coordinator: SagemcomDataUpdateCoordinator
-    gateway: GatewayDeviceInfo
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Sagemcom F@st from a config entry."""
     host = entry.data[CONF_HOST]
