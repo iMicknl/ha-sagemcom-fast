@@ -1,12 +1,16 @@
 {
   "domain": "sagemcom_fast",
   "name": "Sagemcom F@st",
-  "version": "0.2.9",
+  "codeowners": [
+    "@imicknl",
+    "@arunpoudel"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/imicknl/ha-sagemcom-fast",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/imicknl/ha-sagemcom-fast/issues",
   "requirements": [
-    "sagemcom_api===1.1.0"
+    "sagemcom_api==1.1.0"
   ],
   "ssdp": [
     {
@@ -18,9 +22,5 @@
       "manufacturer": "Sagemcom Broadband SAS"
     }
   ],
-  "codeowners": [
-    "@imicknl",
-    "@arunpoudel"
-  ],
-  "iot_class": "local_polling"
+  "version": "0.2.9"
 }
