@@ -41,25 +41,31 @@ The encryption method differs per device. Please refer to the table below to und
 
 ## Supported devices
 
-Have a look at the table below for more information about supported devices.
+Have a look at the table below for more information about supported devices. The Sagemcom F@st series is used by multiple cable companies, where some cable companies did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell and the Smart Hub from BT.
 
 | Router Model          | Provider(s)          | Authentication Method | Comments                      |
 | --------------------- | -------------------- | --------------------- | ----------------------------- |
 | Sagemcom F@st 3864    | Optus                | sha512                | username: guest, password: "" |
 | Sagemcom F@st 3865b   | Proximus (b-box3)    | md5                   |                               |
-| Sagemcom F@st 3890V3  | Delta / Zeelandnet   | md5                   |                               |
+| Sagemcom F@st 3890V3  | Delta / Zeelandnet   | sha512                |                               |
+| Sagemcom F@st 3896    |                      | sha512                | username: admin               |
 | Sagemcom F@st 4360Air | KPN                  | md5                   |                               |
+| Sagemcom F@st 4353    | Belong Gateway       | md5                   | username: admin, password: "" |
 | Sagemcom F@st 5250    | Bell (Home Hub 2000) | md5                   | username: guest, password: "" |
 | Sagemcom F@st 5280    |                      | sha512                |                               |
+| Sagemcom F@st 5359    | KPN (Box 12)         | sha512                | username: admin               |
 | Sagemcom F@st 5364    | BT (Smart Hub)       | md5                   | username: guest, password: "" |
 | SagemCom F@st 5366SD  | Eir F3000            | md5                   |                               |
 | Sagemcom F@st 5370e   | Telia                | sha512                |                               |
+| Sagemcom F@st 5380    | TDC                  | md5                   |                               |
 | Sagemcom F@st 5566    | Bell (Home Hub 3000) | md5                   | username: guest, password: "" |
+| Sagemcom F@st 5688T   | Salt (FibreBox_X6)   | sha512                | username: admin               |
+| Sagemcom F@st 5689    | Bell (Home Hub 4000) | md5                   | username: admin, password: "" |
 | Sagemcom F@st 5655V2  | MásMóvil             | md5                   |                               |
-| Sagemcom F@st 5657    |                      | md5                   |                               |
+| Sagemcom F@st 5657IL  |                      | md5                   |                               |
 | Speedport Pro         | Telekom              | md5                   | username: admin               |
 
-> Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or pull request.
+> Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or directly pull request.
 
 ## Advanced
 
