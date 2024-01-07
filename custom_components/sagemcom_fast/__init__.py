@@ -39,14 +39,6 @@ from .device_tracker import SagemcomDataUpdateCoordinator
 SERVICE_REBOOT = "reboot"
 
 
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Sagemcom component."""
-
-    hass.data.setdefault(DOMAIN, {})
-
-    return True
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Sagemcom from a config entry."""
 
@@ -102,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     await coordinator.async_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = {
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "coordinator": coordinator,
         "update_listener": entry.add_update_listener(update_listener),
     }
@@ -118,7 +110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         name=f"{gateway.manufacturer} {gateway.model_number}",
         model=gateway.model_name,
         sw_version=gateway.software_version,
-        configuration_url=host,
+        configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
 
     # Register components
