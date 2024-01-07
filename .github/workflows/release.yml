@@ -1,0 +1,37 @@
+name: Release Custom Component to HACS
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Retrieve new version to tag and publish release with
+      - name: Retrieve version from tag name
+        id: version
+        run: |
+          tag=${{ github.event.release.tag_name }}
+          version_number=${tag#?}
+          echo version: $version_number
+          echo "version=$version_number" >> $GITHUB_OUTPUT
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Update manifest.json version to release version
+        uses: jossef/action-set-json-field@v2
+        with:
+          file: custom_components/sagemcom_fast/manifest.json
+          field: version
+          value: ${{ steps.version.outputs.version }}
+
+      - name: Commit changes
+        run: |
+          git add custom_components/sagemcom_fast/manifest.json
+          git commit -m "Bump version to ${{ steps.version.outputs.version }}."
+          git tag -f -a ${{ github.event.release.tag_name }} -m "Release ${{ steps.version.outputs.version }}."
+          git push origin HEAD:main
+          git push origin -f ${{ github.event.release.tag_name }}
