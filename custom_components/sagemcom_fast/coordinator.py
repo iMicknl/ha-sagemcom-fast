@@ -32,17 +32,17 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.data = {}
         self.hosts: dict[str, Device] = {}
-        self._client = client
+        self.client = client
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
         try:
             async with async_timeout.timeout(10):
                 try:
-                    await self._client.login()
-                    hosts = await self._client.get_hosts(only_active=True)
+                    await self.client.login()
+                    hosts = await self.client.get_hosts(only_active=True)
                 finally:
-                    await self._client.logout()
+                    await self.client.logout()
 
                 """Mark all device as non-active."""
                 for idx, host in self.hosts.items():

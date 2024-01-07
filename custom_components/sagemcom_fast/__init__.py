@@ -16,7 +16,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, service
+from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
@@ -37,8 +37,6 @@ from .const import (
 )
 from .coordinator import SagemcomDataUpdateCoordinator
 
-SERVICE_REBOOT = "reboot"
-
 
 @dataclass
 class HomeAssistantSagemcomFastData:
@@ -50,7 +48,6 @@ class HomeAssistantSagemcomFastData:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Sagemcom F@st from a config entry."""
-
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
@@ -121,18 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
 
-    # Register components
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Handle gateway device services
-    async def async_command_reboot(call):
-        """Handle reboot service call."""
-        await client.reboot()
-
-    service.async_register_admin_service(
-        hass, DOMAIN, SERVICE_REBOOT, async_command_reboot
-    )
-
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
     return True
@@ -140,7 +126,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 
@@ -150,9 +135,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        coordinator.update_interval = timedelta(
+        data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
+        data.coordinator.update_interval = timedelta(
             seconds=entry.options[CONF_SCAN_INTERVAL]
         )
 
-        await coordinator.async_refresh()
+        await data.coordinator.async_refresh()

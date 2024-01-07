@@ -22,4 +22,4 @@ ATTR_MANUFACTURER: Final = "Sagemcom"
 MIN_SCAN_INTERVAL: Final = 10
 DEFAULT_SCAN_INTERVAL: Final = 10
 
-PLATFORMS: list[Platform] = [Platform.DEVICE_TRACKER]
+PLATFORMS: list[Platform] = [Platform.DEVICE_TRACKER, Platform.BUTTON]
