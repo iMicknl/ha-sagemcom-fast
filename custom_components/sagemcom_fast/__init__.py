@@ -1,21 +1,21 @@
-"""The Sagemcom integration."""
+"""The Sagemcom F@st integration."""
+from __future__ import annotations
+
 import asyncio
 from datetime import timedelta
-import logging
 
 from aiohttp.client_exceptions import ClientError
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
-    CONF_SOURCE,
     CONF_SSL,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, service
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.client import SagemcomClient
@@ -23,17 +23,18 @@ from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
-    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
 
-from .const import CONF_ENCRYPTION_METHOD, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import (
+    CONF_ENCRYPTION_METHOD,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    LOGGER,
+    PLATFORMS,
+)
 from .device_tracker import SagemcomDataUpdateCoordinator
-
-_LOGGER = logging.getLogger(__name__)
-
-PLATFORMS = ["device_tracker"]
 
 SERVICE_REBOOT = "reboot"
 
@@ -68,37 +69,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     try:
         await client.login()
-    except AccessRestrictionException:
-        _LOGGER.error("access_restricted")
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={CONF_SOURCE: SOURCE_REAUTH},
-                data=entry.data,
-            )
-        )
-        return False
-    except (AuthenticationException, UnauthorizedException):
-        _LOGGER.error("invalid_auth")
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={CONF_SOURCE: SOURCE_REAUTH},
-                data=entry.data,
-            )
-        )
-        return False
+    except AccessRestrictionException as exception:
+        LOGGER.error("Access restricted")
+        raise ConfigEntryAuthFailed("Access restricted") from exception
+    except (AuthenticationException, UnauthorizedException) as exception:
+        LOGGER.error("Invalid_auth")
+        raise ConfigEntryAuthFailed("Invalid credentials") from exception
     except (TimeoutError, ClientError) as exception:
-        _LOGGER.error("Failed to connect")
+        LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:
-        _LOGGER.error("Maximum session count reached")
+        LOGGER.error("Maximum session count reached")
         raise ConfigEntryNotReady("Maximum session count reached") from exception
-    except LoginTimeoutException:
-        _LOGGER.error("Request timed-out")
-        return False
     except Exception as exception:  # pylint: disable=broad-except
-        _LOGGER.exception(exception)
+        LOGGER.exception(exception)
         return False
 
     try:
@@ -110,7 +94,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
-        _LOGGER,
+        LOGGER,
         name="sagemcom_hosts",
         client=client,
         update_interval=timedelta(seconds=update_interval),
