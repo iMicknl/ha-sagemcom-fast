@@ -1,54 +1,53 @@
-"""The Sagemcom integration."""
-import asyncio
+"""The Sagemcom F@st integration."""
+from __future__ import annotations
+
+from dataclasses import dataclass
 from datetime import timedelta
-import logging
 
 from aiohttp.client_exceptions import ClientError
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
-    CONF_SOURCE,
     CONF_SSL,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, service
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
-    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
+from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
-from .const import CONF_ENCRYPTION_METHOD, DEFAULT_SCAN_INTERVAL, DOMAIN
-from .device_tracker import SagemcomDataUpdateCoordinator
+from .const import (
+    CONF_ENCRYPTION_METHOD,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    LOGGER,
+    PLATFORMS,
+)
+from .coordinator import SagemcomDataUpdateCoordinator
 
-_LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["device_tracker"]
+@dataclass
+class HomeAssistantSagemcomFastData:
+    """SagemcomFast data stored in the Home Assistant data object."""
 
-SERVICE_REBOOT = "reboot"
-
-
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Sagemcom component."""
-
-    hass.data.setdefault(DOMAIN, {})
-
-    return True
+    coordinator: SagemcomDataUpdateCoordinator
+    gateway: GatewayDeviceInfo
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Sagemcom from a config entry."""
-
+    """Set up Sagemcom F@st from a config entry."""
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
@@ -68,37 +67,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     try:
         await client.login()
-    except AccessRestrictionException:
-        _LOGGER.error("access_restricted")
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={CONF_SOURCE: SOURCE_REAUTH},
-                data=entry.data,
-            )
-        )
-        return False
-    except (AuthenticationException, UnauthorizedException):
-        _LOGGER.error("invalid_auth")
-        hass.async_create_task(
-            hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={CONF_SOURCE: SOURCE_REAUTH},
-                data=entry.data,
-            )
-        )
-        return False
+    except AccessRestrictionException as exception:
+        LOGGER.error("Access restricted")
+        raise ConfigEntryAuthFailed("Access restricted") from exception
+    except (AuthenticationException, UnauthorizedException) as exception:
+        LOGGER.error("Invalid_auth")
+        raise ConfigEntryAuthFailed("Invalid credentials") from exception
     except (TimeoutError, ClientError) as exception:
-        _LOGGER.error("Failed to connect")
+        LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:
-        _LOGGER.error("Maximum session count reached")
+        LOGGER.error("Maximum session count reached")
         raise ConfigEntryNotReady("Maximum session count reached") from exception
-    except LoginTimeoutException:
-        _LOGGER.error("Request timed-out")
-        return False
     except Exception as exception:  # pylint: disable=broad-except
-        _LOGGER.exception(exception)
+        LOGGER.exception(exception)
         return False
 
     try:
@@ -110,18 +92,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
-        _LOGGER,
+        LOGGER,
         name="sagemcom_hosts",
         client=client,
         update_interval=timedelta(seconds=update_interval),
     )
 
-    await coordinator.async_refresh()
+    await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "update_listener": entry.add_update_listener(update_listener),
-    }
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
+        coordinator=coordinator, gateway=gateway
+    )
 
     # Create gateway device in Home Assistant
     device_registry = hass.helpers.device_registry.async_get(hass)
@@ -134,36 +115,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         name=f"{gateway.manufacturer} {gateway.model_number}",
         model=gateway.model_name,
         sw_version=gateway.software_version,
+        configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
 
-    # Register components
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Handle gateway device services
-    async def async_command_reboot(call):
-        """Handle reboot service call."""
-        await client.reboot()
-
-    service.async_register_admin_service(
-        hass, DOMAIN, SERVICE_REBOOT, async_command_reboot
-    )
+    entry.async_on_unload(entry.add_update_listener(update_listener))
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-
-    unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
-                for component in PLATFORMS
-            ]
-        )
-    )
-    if unload_ok:
-        hass.data[DOMAIN][entry.entry_id]["update_listener"]()
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
@@ -172,9 +135,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        coordinator.update_interval = timedelta(
+        data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
+        data.coordinator.update_interval = timedelta(
             seconds=entry.options[CONF_SCAN_INTERVAL]
         )
 
-        await coordinator.async_refresh()
+        await data.coordinator.async_refresh()
