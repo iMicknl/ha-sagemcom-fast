@@ -1,14 +1,16 @@
 """Support for device tracking of client router."""
+from __future__ import annotations
 
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Optional
 
 import async_timeout
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -18,8 +20,6 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device
 
 from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
@@ -43,7 +43,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         *,
         name: str,
         client: SagemcomClient,
-        update_interval: Optional[timedelta] = None,
+        update_interval: timedelta | None = None,
     ):
         """Initialize update coordinator."""
         super().__init__(
@@ -53,10 +53,10 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=update_interval,
         )
         self.data = {}
-        self.hosts: Dict[str, Device] = {}
+        self.hosts: dict[str, Device] = {}
         self._client = client
 
-    async def _async_update_data(self) -> Dict[str, Device]:
+    async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
         try:
             async with async_timeout.timeout(10):
@@ -79,14 +79,14 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
 class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
     """Sagemcom router scanner entity."""
 
-    def __init__(self, coordinator, idx, parent):
+    def __init__(self, coordinator, idx, parent) -> None:
         """Initialize the device."""
         super().__init__(coordinator)
         self._idx = idx
         self._via_device = parent
 
     @property
-    def device(self):
+    def device(self) -> Device:
         """Return the device entity."""
         return self.coordinator.data[self._idx]
 
@@ -115,20 +115,18 @@ class SagemcomScannerEntity(ScannerEntity, RestoreEntity, CoordinatorEntity):
         return self.device.active or False
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return the device info."""
-        return {
-            "name": self.name,
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "via_device": (DOMAIN, self._via_device),
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            via_device=(DOMAIN, self._via_device),
+        )
 
     @property
-    def device_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, StateType]:
         """Return the state attributes of the device."""
-        attr = {"interface_type": self.device.interface_type}
-
-        return attr
+        return {"interface_type": self.device.interface_type}
 
     @property
     def ip_address(self) -> str:
