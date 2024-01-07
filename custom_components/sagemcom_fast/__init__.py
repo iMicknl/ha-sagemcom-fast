@@ -140,7 +140,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
         data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
