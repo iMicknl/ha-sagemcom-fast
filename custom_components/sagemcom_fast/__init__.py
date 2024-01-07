@@ -34,7 +34,7 @@ from .const import (
     LOGGER,
     PLATFORMS,
 )
-from .device_tracker import SagemcomDataUpdateCoordinator
+from .coordinator import SagemcomDataUpdateCoordinator
 
 SERVICE_REBOOT = "reboot"
 
