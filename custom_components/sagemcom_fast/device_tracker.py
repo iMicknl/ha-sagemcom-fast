@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -71,6 +71,7 @@ class SagemcomScannerEntity(
         """Return the device info."""
         return DeviceInfo(
             identifiers={(DOMAIN, self.unique_id)},
+            connections={(CONNECTION_NETWORK_MAC, self.device.phys_address)},
             name=self.name,
             via_device=(DOMAIN, self._via_device),
         )
