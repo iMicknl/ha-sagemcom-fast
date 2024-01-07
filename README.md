@@ -2,11 +2,22 @@
 [![GitHub release](https://img.shields.io/github/release/iMicknl/ha-sagemcom-fast.svg)](https://github.com/iMicknl/ha-sagemcom-fast/releases/)
 [![HA integration usage](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.sagemcom_fast.total)](https://analytics.home-assistant.io/custom_integrations.json)
 
-# Sagemcom F@st - Home Assistant (work in progress)
+# Sagemcom F@st integration for Home Assistant
 
-This integration adds support for Sagemcom F@st routers to Home Assistant. Currently this is a work in progress where only a basic device_tracker is supported, however in the future sensors will be added as well.
+This integration adds support for Sagemcom F@st routers to Home Assistant. Currently only a basic device_tracker entity is supported, however this could be extended in the future with more sensors.
 
 Sagemcom F@st routers are used by many providers worldwide, but many of them did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell and the Smart Hub from BT.
+
+## Features
+
+- Device Tracker, to track connected devices to your router (WiFi and Ethernet)
+- Reboot button, to reboot your gateway from Home Assistant
+
+## Known limitations / issues
+
+Since this integration is only used by a few users, not much time has been spent on the development lately. There are currently some known limitations and bugs. Contributions are welcome!
+
+- After reboot, not connected devices have status 'unavailable' [#14](https://github.com/iMicknl/ha-sagemcom-fast/issues/14)
 
 ## Installation
 

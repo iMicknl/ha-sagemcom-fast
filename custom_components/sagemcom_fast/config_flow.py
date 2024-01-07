@@ -79,6 +79,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input:
+            # TODO change to gateway mac address or something more unique
             await self.async_set_unique_id(user_input.get(CONF_HOST))
             self._abort_if_unique_id_configured()
 
