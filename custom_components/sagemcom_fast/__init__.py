@@ -118,6 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         name=f"{gateway.manufacturer} {gateway.model_number}",
         model=gateway.model_name,
         sw_version=gateway.software_version,
+        configuration_url=host,
     )
 
     # Register components
