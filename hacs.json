@@ -1,6 +1,6 @@
 {
     "name": "Sagemcom F@st",
     "domains": ["device_tracker", "sensor"],
-    "homeassistant": "2023.8.2",
+    "homeassistant": "2024.1.2",
     "render_readme": true
 }
