@@ -6,7 +6,7 @@
 
 This integration adds support for Sagemcom F@st routers to Home Assistant. Currently only a basic device_tracker entity is supported, however this could be extended in the future with more sensors.
 
-Sagemcom F@st routers are used by many providers worldwide, but many of them did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell and the Smart Hub from BT.
+Sagemcom F@st routers are used by many providers worldwide, but many of them did rebrand the router. Examples are the b-box from Proximus, Home Hub from bell, Salt Box X6 (Switzerland) and the Smart Hub from BT.
 
 ## Features
 
