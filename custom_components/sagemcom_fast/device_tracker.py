@@ -4,7 +4,7 @@ from __future__ import annotations
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -24,12 +24,21 @@ async def async_setup_entry(
 ) -> None:
     """Set up device tracker from config entry."""
     data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
+    tracked: dict[str, SagemcomScannerEntity] = {}
 
-    async_add_entities(
-        SagemcomScannerEntity(data.coordinator, idx, entry.entry_id)
-        for idx, device in data.coordinator.data.items()
-    )
+    @callback
+    def async_update_router() -> None:
+        """Update the values of the router."""
+        newly_discovered: list[SagemcomScannerEntity] = []
+        for idx, device in data.coordinator.data.items():
+            if idx not in tracked:
+                tracked[idx] = SagemcomScannerEntity(data.coordinator, idx, entry.entry_id)
+                newly_discovered.append(tracked[idx])
 
+        async_add_entities(newly_discovered)
+
+    entry.async_on_unload(data.coordinator.async_add_listener(async_update_router))
+    async_update_router()
 
 class SagemcomScannerEntity(
     ScannerEntity, RestoreEntity, CoordinatorEntity[SagemcomDataUpdateCoordinator]
