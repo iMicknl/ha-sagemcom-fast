@@ -32,13 +32,15 @@ async def async_setup_entry(
         newly_discovered: list[SagemcomScannerEntity] = []
         for idx, device in data.coordinator.data.items():
             if idx not in tracked:
-                tracked[idx] = SagemcomScannerEntity(data.coordinator, idx, entry.entry_id)
+                tracked[idx] = SagemcomScannerEntity(
+                    data.coordinator, idx, entry.entry_id
+                )
                 newly_discovered.append(tracked[idx])
-
         async_add_entities(newly_discovered)
 
     entry.async_on_unload(data.coordinator.async_add_listener(async_update_router))
     async_update_router()
+
 
 class SagemcomScannerEntity(
     ScannerEntity, RestoreEntity, CoordinatorEntity[SagemcomDataUpdateCoordinator]
