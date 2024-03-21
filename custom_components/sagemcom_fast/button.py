@@ -11,7 +11,7 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from . import HomeAssistantSagemcomFastData
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 
 
 async def async_setup_entry(
@@ -43,7 +43,11 @@ class SagemcomFastRebootButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle the button press."""
-        await self.client.reboot()
+        try:
+            await self.client.login()
+            await self.client.reboot()
+        except Exception as exception:  # pylint: disable=broad-except
+            LOGGER.exception(exception)
 
     @property
     def device_info(self) -> DeviceInfo:
