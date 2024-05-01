@@ -16,7 +16,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers import aiohttp_client, device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
@@ -105,9 +105,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     # Create gateway device in Home Assistant
-    device_registry = hass.helpers.device_registry.async_get(hass)
+    dev_registry = device_registry.async_get(hass)
 
-    device_registry.async_get_or_create(
+    dev_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
         identifiers={(DOMAIN, gateway.serial_number)},
