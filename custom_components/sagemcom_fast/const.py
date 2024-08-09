@@ -1,4 +1,5 @@
 """Constants for the Sagemcom F@st integration."""
+
 from __future__ import annotations
 
 import logging

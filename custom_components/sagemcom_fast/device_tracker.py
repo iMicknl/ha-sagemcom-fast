@@ -1,4 +1,5 @@
 """Support for device tracking of client router."""
+
 from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType
