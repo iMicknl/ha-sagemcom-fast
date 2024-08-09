@@ -33,6 +33,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         self.data = {}
         self.hosts: dict[str, Device] = {}
         self.client = client
+        self.logger = logger
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
@@ -53,4 +54,5 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
 
                 return self.hosts
         except Exception as exception:
-            raise UpdateFailed(f"Error communicating with API: {exception}")
+            self.logger.exception(exception)
+            raise UpdateFailed(f"Error communicating with API: {str(exception)}")
