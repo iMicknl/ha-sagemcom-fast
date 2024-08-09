@@ -21,7 +21,7 @@
           "ssl": "[%key:common::config_flow::data::ssl%]",
           "verify_ssl": "[%key:common::config_flow::data::verify_ssl%]"
         },
-        "description": "Enter your credentials for accessing the routers web interface. Depending on the router model, Sagemcom is using different encryption methods for authentication, which can be found in the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices) list."
+        "description": "Enter your credentials for accessing the router's web interface. The first login may take longer (up to a minute) as we retrieve the encryption method used by your router. For more information, see the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices)."
       }
     }
   },
