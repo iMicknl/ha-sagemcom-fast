@@ -1,4 +1,5 @@
 """The Sagemcom F@st integration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginRetryErrorException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -57,11 +59,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
     client = SagemcomClient(
-        host,
-        username,
-        password,
-        EncryptionMethod(encryption_method),
-        session,
+        host=host,
+        username=username,
+        password=password,
+        authentication_method=EncryptionMethod(encryption_method),
+        session=session,
         ssl=ssl,
     )
 
@@ -73,12 +75,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except (AuthenticationException, UnauthorizedException) as exception:
         LOGGER.error("Invalid_auth")
         raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (TimeoutError, ClientError) as exception:
+    except (TimeoutError, ClientError, ConnectionError) as exception:
         LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:
         LOGGER.error("Maximum session count reached")
         raise ConfigEntryNotReady("Maximum session count reached") from exception
+    except LoginRetryErrorException as exception:
+        LOGGER.error("Too many login attempts. Retry later.")
+        raise ConfigEntryNotReady(
+            "Too many login attempts. Retry later."
+        ) from exception
     except Exception as exception:  # pylint: disable=broad-except
         LOGGER.exception(exception)
         return False
@@ -98,8 +105,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         update_interval=timedelta(seconds=update_interval),
     )
 
-    await coordinator.async_config_entry_first_refresh()
-
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
         coordinator=coordinator, gateway=gateway
     )
@@ -117,6 +122,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         sw_version=gateway.software_version,
         configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
+
+    await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))

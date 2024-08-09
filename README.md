@@ -37,7 +37,7 @@ https://github.com/imicknl/ha-sagemcom-fast
 
 This integration can only be configured via the Config Flow. Go to `Configuration -> Integrations -> Add Integration` and choose Sagemcom F@st. The prompt will ask you for your credentials. Please note that some routers require authentication, where others can login with `guest` username and an empty password.
 
-The encryption method differs per device. Please refer to the table below to understand which option to select. If your device is not listed, please try both methods one by one.
+The first login might take a longer time (up to a minute), since we will try to retrieve the encryption method used by your router.
 
 ## Supported devices
 
