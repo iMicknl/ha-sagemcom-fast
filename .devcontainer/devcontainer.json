@@ -14,7 +14,7 @@
 	"features": {
 		"ghcr.io/devcontainers-contrib/features/ffmpeg-apt-get:1": {} // required for Home Assistant
 	},
-	"postCreateCommand": "pip install -r requirements_dev.txt && pre-commit install && pre-commit install-hooks && sudo apt-get update && sudo apt-get install libpcap-dev libturbojpeg0",
+	"postCreateCommand": "pip install -r requirements_dev.txt && pre-commit install && pre-commit install-hooks && sudo apt-get update && sudo apt-get install -y libpcap-dev libturbojpeg0",
 	"containerEnv": {
 		"DEVCONTAINER": "1"
 	},
