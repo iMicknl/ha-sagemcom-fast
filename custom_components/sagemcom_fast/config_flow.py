@@ -25,16 +25,6 @@ import voluptuous as vol
 from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
 
-DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_HOST): str,
-        vol.Optional(CONF_USERNAME): str,
-        vol.Optional(CONF_PASSWORD): str,
-        vol.Required(CONF_SSL, default=False): bool,
-        vol.Required(CONF_VERIFY_SSL, default=False): bool,
-    }
-)
-
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sagemcom."""
@@ -42,18 +32,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
+    _host: str | None = None
+    _username: str | None = None
+
     async def async_validate_input(self, user_input):
         """Validate user credentials."""
-        username = user_input.get(CONF_USERNAME) or ""
+        self._username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
-        host = user_input[CONF_HOST]
+        self._host = user_input[CONF_HOST]
         ssl = user_input[CONF_SSL]
 
         session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
 
         client = SagemcomClient(
-            host=host,
-            username=username,
+            host=self._host,
+            username=self._username,
             password=password,
             session=session,
             ssl=ssl,
@@ -68,7 +61,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await client.logout()
 
         return self.async_create_entry(
-            title=host,
+            title=self._host,
             data=user_input,
         )
 
@@ -102,7 +95,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 LOGGER.exception(exception)
 
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST, default=self._host): str,
+                    vol.Optional(CONF_USERNAME, default=self._username): str,
+                    vol.Optional(CONF_PASSWORD): str,
+                    vol.Required(CONF_SSL, default=False): bool,
+                    vol.Required(CONF_VERIFY_SSL, default=False): bool,
+                }
+            ),
+            errors=errors,
         )
 
     @staticmethod
