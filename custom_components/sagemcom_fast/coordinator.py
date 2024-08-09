@@ -69,7 +69,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             raise ConfigEntryAuthFailed("Access restricted") from exception
         except (AuthenticationException, UnauthorizedException) as exception:
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
-        except (TimeoutError, ClientError) as exception:
+        except (TimeoutError, ClientError, ConnectionError) as exception:
             raise UpdateFailed("Failed to connect") from exception
         except LoginRetryErrorException as exception:
             raise UpdateFailed(

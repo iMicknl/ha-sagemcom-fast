@@ -75,7 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except (AuthenticationException, UnauthorizedException) as exception:
         LOGGER.error("Invalid_auth")
         raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (TimeoutError, ClientError) as exception:
+    except (TimeoutError, ClientError, ConnectionError) as exception:
         LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:

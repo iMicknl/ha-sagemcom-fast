@@ -86,7 +86,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "access_restricted"
             except AuthenticationException:
                 errors["base"] = "invalid_auth"
-            except (TimeoutError, ClientError):
+            except (TimeoutError, ClientError, ConnectionError):
                 errors["base"] = "cannot_connect"
             except LoginTimeoutException:
                 errors["base"] = "login_timeout"
