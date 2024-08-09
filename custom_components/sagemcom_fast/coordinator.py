@@ -1,13 +1,22 @@
 """Helpers to help coordinate updates."""
+
 from __future__ import annotations
 
 from datetime import timedelta
 import logging
 
+from aiohttp.client_exceptions import ClientError
 import async_timeout
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from sagemcom_api.client import SagemcomClient
+from sagemcom_api.exceptions import (
+    AccessRestrictionException,
+    AuthenticationException,
+    MaximumSessionCountException,
+    UnauthorizedException,
+)
 from sagemcom_api.models import Device
 
 
@@ -53,6 +62,14 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     self.hosts[host.id] = host
 
                 return self.hosts
+        except AccessRestrictionException as exception:
+            raise ConfigEntryAuthFailed("Access restricted") from exception
+        except (AuthenticationException, UnauthorizedException) as exception:
+            raise ConfigEntryAuthFailed("Invalid credentials") from exception
+        except (TimeoutError, ClientError) as exception:
+            raise UpdateFailed("Failed to connect") from exception
+        except MaximumSessionCountException as exception:
+            raise UpdateFailed("Maximum session count reached") from exception
         except Exception as exception:
             self.logger.exception(exception)
             raise UpdateFailed(f"Error communicating with API: {str(exception)}")
