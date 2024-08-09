@@ -10,7 +10,8 @@
       "unknown": "Unexpected error",
       "login_timeout": "Request timed-out. This could be caused by using the wrong encryption method, or using a (non) SSL connection.",
       "maximum_session_count": "Maximum session count reached.",
-      "login_retry_error": "Too many login attempts. Retry later."
+      "login_retry_error": "Too many login attempts. Retry later.",
+      "unsupported_host": "Your host does not support the Sagemcom API endpoint used by this integration. Make sure you have provided the correct host and that your router is supported. For more information, see the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices)."
     },
     "step": {
       "user": {

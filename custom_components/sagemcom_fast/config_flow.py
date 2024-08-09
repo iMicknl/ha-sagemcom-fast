@@ -18,6 +18,7 @@ from sagemcom_api.exceptions import (
     LoginRetryErrorException,
     LoginTimeoutException,
     MaximumSessionCountException,
+    UnsupportedHostException,
 )
 import voluptuous as vol
 
@@ -94,6 +95,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "maximum_session_count"
             except LoginRetryErrorException:
                 errors["base"] = "login_retry_error"
+            except UnsupportedHostException:
+                errors["base"] = "unsupported_host"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 LOGGER.exception(exception)
