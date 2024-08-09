@@ -15,6 +15,7 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginRetryErrorException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -70,6 +71,10 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
         except (TimeoutError, ClientError) as exception:
             raise UpdateFailed("Failed to connect") from exception
+        except LoginRetryErrorException as exception:
+            raise UpdateFailed(
+                "Too many login attempts. Retrying later."
+            ) from exception
         except MaximumSessionCountException as exception:
             raise UpdateFailed("Maximum session count reached") from exception
         except Exception as exception:

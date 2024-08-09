@@ -15,6 +15,7 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginRetryErrorException,
     LoginTimeoutException,
     MaximumSessionCountException,
 )
@@ -91,6 +92,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "login_timeout"
             except MaximumSessionCountException:
                 errors["base"] = "maximum_session_count"
+            except LoginRetryErrorException:
+                errors["base"] = "login_retry_error"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 LOGGER.exception(exception)

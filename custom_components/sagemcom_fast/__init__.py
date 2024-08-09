@@ -24,6 +24,7 @@ from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginRetryErrorException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -80,6 +81,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except MaximumSessionCountException as exception:
         LOGGER.error("Maximum session count reached")
         raise ConfigEntryNotReady("Maximum session count reached") from exception
+    except LoginRetryErrorException as exception:
+        LOGGER.error("Too many login attempts. Retry later.")
+        raise ConfigEntryNotReady(
+            "Too many login attempts. Retry later."
+        ) from exception
     except Exception as exception:  # pylint: disable=broad-except
         LOGGER.exception(exception)
         return False
