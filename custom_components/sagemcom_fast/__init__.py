@@ -1,4 +1,5 @@
 """The Sagemcom F@st integration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -57,11 +58,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
     client = SagemcomClient(
-        host,
-        username,
-        password,
-        EncryptionMethod(encryption_method),
-        session,
+        host=host,
+        username=username,
+        password=password,
+        authentication_method=EncryptionMethod(encryption_method),
+        session=session,
         ssl=ssl,
     )
 
@@ -98,8 +99,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         update_interval=timedelta(seconds=update_interval),
     )
 
-    await coordinator.async_config_entry_first_refresh()
-
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
         coordinator=coordinator, gateway=gateway
     )
@@ -117,6 +116,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         sw_version=gateway.software_version,
         configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
+
+    await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))

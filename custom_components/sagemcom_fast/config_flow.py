@@ -1,5 +1,4 @@
 """Config flow for Sagemcom integration."""
-import logging
 
 from aiohttp import ClientError
 from homeassistant import config_entries
@@ -13,7 +12,6 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from sagemcom_api.client import SagemcomClient
-from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
@@ -22,19 +20,14 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
-
-_LOGGER = logging.getLogger(__name__)
-
-ENCRYPTION_METHODS = [item.value for item in EncryptionMethod]
 
 DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Optional(CONF_USERNAME): str,
         vol.Optional(CONF_PASSWORD): str,
-        vol.Required(CONF_ENCRYPTION_METHOD): vol.In(ENCRYPTION_METHODS),
         vol.Required(CONF_SSL, default=False): bool,
         vol.Required(CONF_VERIFY_SSL, default=False): bool,
     }
@@ -52,18 +45,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
         host = user_input[CONF_HOST]
-        encryption_method = user_input[CONF_ENCRYPTION_METHOD]
         ssl = user_input[CONF_SSL]
 
         session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
 
         client = SagemcomClient(
-            host,
-            username,
-            password,
-            EncryptionMethod(encryption_method),
-            session,
+            host=host,
+            username=username,
+            password=password,
+            session=session,
             ssl=ssl,
+        )
+
+        user_input[CONF_ENCRYPTION_METHOD] = await client.get_encryption_method()
+        LOGGER.debug(
+            "Detected encryption method: %s", user_input[CONF_ENCRYPTION_METHOD]
         )
 
         await client.login()
@@ -97,7 +93,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "maximum_session_count"
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
-                _LOGGER.exception(exception)
+                LOGGER.exception(exception)
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors

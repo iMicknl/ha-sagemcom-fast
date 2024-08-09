@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 
@@ -50,6 +51,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             async with async_timeout.timeout(10):
                 try:
                     await self.client.login()
+                    await asyncio.sleep(1)
                     hosts = await self.client.get_hosts(only_active=True)
                 finally:
                     await self.client.logout()
