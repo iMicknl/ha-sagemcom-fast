@@ -49,7 +49,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
         try:
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(25):
                 try:
                     await self.client.login()
                     await asyncio.sleep(1)
