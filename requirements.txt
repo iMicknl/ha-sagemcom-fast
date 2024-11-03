@@ -1,1 +1,1 @@
-sagemcom_api==1.3.2
+sagemcom_api==1.4.1
