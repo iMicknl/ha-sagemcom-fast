@@ -20,7 +20,8 @@
           "password": "Password",
           "username": "Username",
           "ssl": "Uses an SSL certificate",
-          "verify_ssl": "Verify SSL certificate"
+          "verify_ssl": "Verify SSL certificate",
+          "ssl_cipher_list": "List of accepted SSL ciphers"
         },
         "description": "Enter your credentials for accessing the router's web interface. The first login may take longer (up to a minute) as we retrieve the encryption method used by your router. For more information, see the [supported devices](https://github.com/iMicknl/ha-sagemcom-fast#supported-devices)."
       }

@@ -10,7 +10,9 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import ssl as ssl_util
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -22,7 +24,7 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
+from .const import CONF_ENCRYPTION_METHOD, CONF_SSL_CIPHER_LIST, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
 
 
@@ -42,7 +44,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._host = user_input[CONF_HOST]
         ssl = user_input[CONF_SSL]
 
-        session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
+        session = async_get_clientsession(
+            self.hass,
+            user_input[CONF_VERIFY_SSL],
+            ssl_cipher=user_input[CONF_SSL_CIPHER_LIST],
+        )
 
         client = SagemcomClient(
             host=self._host,
@@ -103,6 +109,32 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_PASSWORD): str,
                     vol.Required(CONF_SSL, default=False): bool,
                     vol.Required(CONF_VERIFY_SSL, default=False): bool,
+                    vol.Optional(
+                        CONF_SSL_CIPHER_LIST,
+                        default=ssl_util.SSLCipherList.PYTHON_DEFAULT,
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                {
+                                    "label": "Python Default",
+                                    "value": ssl_util.SSLCipherList.PYTHON_DEFAULT,
+                                },
+                                {
+                                    "label": "Modern",
+                                    "value": ssl_util.SSLCipherList.MODERN,
+                                },
+                                {
+                                    "label": "Intermediate",
+                                    "value": ssl_util.SSLCipherList.INTERMEDIATE,
+                                },
+                                {
+                                    "label": "Insecure",
+                                    "value": ssl_util.SSLCipherList.INSECURE,
+                                },
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
             errors=errors,

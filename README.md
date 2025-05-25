@@ -63,7 +63,10 @@ Have a look at the table below for more information about supported devices. The
 | Sagemcom F@st 5689    | Bell (Home Hub 4000) | md5                   | username: admin, password: "" |
 | Sagemcom F@st 5655V2  | MásMóvil             | md5                   |                               |
 | Sagemcom F@st 5657IL  |                      | md5                   |                               |
+| Sagemcom F@st 5360    | Sunrise Internet Box<sup>1</sup> | md5       | username: admin               |
 | Speedport Pro         | Telekom              | md5                   | username: admin               |
+
+<sup>1</sup> If you run into problems connecting to this device, try setting the list of accepted SSL ciphers to 'Intermediate' or 'Insecure'.
 
 > Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or directly pull request.
 

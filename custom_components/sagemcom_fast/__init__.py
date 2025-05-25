@@ -19,7 +19,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from homeassistant.util import ssl as ssl_util
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
@@ -33,6 +32,7 @@ from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from .const import (
     CONF_ENCRYPTION_METHOD,
+    CONF_SSL_CIPHER_LIST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
@@ -57,8 +57,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     encryption_method = entry.data[CONF_ENCRYPTION_METHOD]
     ssl = entry.data[CONF_SSL]
     verify_ssl = entry.data[CONF_VERIFY_SSL]
+    ssl_cipher_list = entry.data[CONF_SSL_CIPHER_LIST]
 
-    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl, ssl_cipher=ssl_util.SSLCipherList.INTERMEDIATE)
+    session = aiohttp_client.async_get_clientsession(
+        hass, verify_ssl=verify_ssl, ssl_cipher=ssl_cipher_list
+    )
     client = SagemcomClient(
         host=host,
         username=username,

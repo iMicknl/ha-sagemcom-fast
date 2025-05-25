@@ -14,6 +14,7 @@ DOMAIN: Final = "sagemcom_fast"
 CONF_ENCRYPTION_METHOD: Final = "encryption_method"
 CONF_TRACK_WIRELESS_CLIENTS: Final = "track_wireless_clients"
 CONF_TRACK_WIRED_CLIENTS: Final = "track_wired_clients"
+CONF_SSL_CIPHER_LIST: Final = "ssl_cipher_list"
 
 DEFAULT_TRACK_WIRELESS_CLIENTS: Final = True
 DEFAULT_TRACK_WIRED_CLIENTS: Final = True
