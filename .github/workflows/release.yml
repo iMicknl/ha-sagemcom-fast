@@ -8,7 +8,7 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Retrieve new version to tag and publish release with
       - name: Retrieve version from tag name
