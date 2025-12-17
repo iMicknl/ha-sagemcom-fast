@@ -34,7 +34,7 @@ async def async_setup_entry(
         for idx, device in data.coordinator.data.items():
             if idx not in tracked:
                 tracked[idx] = SagemcomScannerEntity(
-                    data.coordinator, idx, entry.entry_id
+                    data.coordinator, idx, data.gateway.serial_number
                 )
                 newly_discovered.append(tracked[idx])
         async_add_entities(newly_discovered)
