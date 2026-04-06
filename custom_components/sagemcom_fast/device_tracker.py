@@ -67,7 +67,7 @@ class SagemcomScannerEntity(
         return (
             self.device.name
             or self.device.user_friendly_name
-            or self.device.mac_address
+            or self.device.phys_address
         )
 
     @property

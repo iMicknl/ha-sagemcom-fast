@@ -105,6 +105,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_VERIFY_SSL, default=False): bool,
                 }
             ),
+            description_placeholders={
+                "supported_devices_url": "https://github.com/iMicknl/ha-sagemcom-fast#supported-devices"
+            },
             errors=errors,
         )
 
