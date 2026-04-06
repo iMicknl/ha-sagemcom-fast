@@ -106,7 +106,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             description_placeholders={
-               "supported_devices_url": "https://github.com/iMicknl/ha-sagemcom-fast#supported-devices"
+                "supported_devices_url": "https://github.com/iMicknl/ha-sagemcom-fast#supported-devices"
             },
             errors=errors,
         )
