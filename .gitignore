@@ -51,6 +51,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Privacy-safe contributor profiles should be reviewed and shared explicitly
+sagemcom-profile*.json
+
 # Translations
 *.mo
 *.pot
@@ -67,6 +70,11 @@ instance/
 
 # PyCharm stuff:
 .idea/
+
+# Visual Studio Code local settings
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
 
 # Scrapy stuff:
 .scrapy
@@ -133,7 +141,5 @@ dmypy.json
 
 **/.DS_Store
 
-# DevContainer
+# DevContainer and local Home Assistant test environment
 config
-!.vscode/tasks.json
-!.vscode/launch.json

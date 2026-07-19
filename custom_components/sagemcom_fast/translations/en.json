@@ -35,5 +35,58 @@
         }
       }
     }
+  },
+  "entity": {
+    "button": {
+      "reboot": {
+        "name": "Reboot"
+      }
+    },
+    "binary_sensor": {
+      "wan_connectivity": {
+        "name": "WAN connectivity"
+      }
+    },
+    "sensor": {
+      "uptime": {
+        "name": "Uptime"
+      },
+      "active_clients": {
+        "name": "Active clients"
+      },
+      "active_wired_clients": {
+        "name": "Active wired clients"
+      },
+      "active_wireless_clients": {
+        "name": "Active wireless clients"
+      },
+      "dsl_downstream_rate": {
+        "name": "DSL downstream rate"
+      },
+      "dsl_upstream_rate": {
+        "name": "DSL upstream rate"
+      },
+      "docsis_downstream_snr": {
+        "name": "Downstream {frequency_mhz} MHz (CH-{channel_id}) SNR"
+      },
+      "docsis_downstream_power": {
+        "name": "Downstream {frequency_mhz} MHz (CH-{channel_id}) power"
+      },
+      "docsis_upstream_power": {
+        "name": "Upstream {frequency_mhz} MHz (CH-{channel_id}) power"
+      },
+      "docsis_unerrored_codewords": {
+        "name": "Downstream unerrored codewords"
+      },
+      "docsis_corrected_codewords": {
+        "name": "Downstream corrected codewords"
+      },
+      "docsis_uncorrectable_codewords": {
+        "name": "Downstream uncorrectable codewords"
+      },
+      "docsis_codeword_error_percentage": {
+        "name": "Downstream codeword error percentage"
+      }
+    }
   }
 }

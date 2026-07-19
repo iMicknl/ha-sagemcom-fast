@@ -33,6 +33,14 @@ Give a clear and concise description of what you expected to happen.
 
 If applicable, add screenshots to help explain your problem.
 
+## Unsupported router profile
+
+If the integration loads but expected entities or API capabilities are missing,
+attach the privacy-safe `sagemcom-profile.json` generated with the
+[contributor profile collector](https://github.com/iMicknl/ha-sagemcom-fast#collect-an-unsupported-router-profile).
+Inspect the file before sharing it. Do not attach credentials, raw router dumps,
+MAC or IP addresses, serial numbers, or client details.
+
 ## Additional context
 
 Add any other context about the problem here.

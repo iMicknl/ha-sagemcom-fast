@@ -15,7 +15,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
@@ -25,6 +25,7 @@ from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     LoginRetryErrorException,
+    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -38,6 +39,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import SagemcomDataUpdateCoordinator
+from .identity import gateway_unique_id
 
 
 @dataclass
@@ -45,7 +47,33 @@ class HomeAssistantSagemcomFastData:
     """SagemcomFast data stored in the Home Assistant data object."""
 
     coordinator: SagemcomDataUpdateCoordinator
-    gateway: GatewayDeviceInfo
+
+
+@callback
+def _async_update_gateway_unique_id(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    gateway: GatewayDeviceInfo,
+) -> None:
+    """Migrate a host-based config-entry ID to the gateway identity."""
+    unique_id = gateway_unique_id(gateway)
+    if entry.unique_id == unique_id:
+        return
+
+    existing_entry = hass.config_entries.async_entry_for_domain_unique_id(
+        DOMAIN, unique_id
+    )
+    if existing_entry is not None and existing_entry.entry_id != entry.entry_id:
+        LOGGER.error(
+            "Cannot migrate config entry %s to gateway ID %s because it is "
+            "already used by entry %s",
+            entry.entry_id,
+            unique_id,
+            existing_entry.entry_id,
+        )
+        return
+
+    hass.config_entries.async_update_entry(entry, unique_id=unique_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
@@ -75,7 +103,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except (AuthenticationException, UnauthorizedException) as exception:
         LOGGER.error("Invalid_auth")
         raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (TimeoutError, ClientError, ConnectionError) as exception:
+    except (
+        TimeoutError,
+        ClientError,
+        ConnectionError,
+        LoginTimeoutException,
+    ) as exception:
         LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:
@@ -95,6 +128,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     finally:
         await client.logout()
 
+    _async_update_gateway_unique_id(hass, entry, gateway)
+
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SagemcomDataUpdateCoordinator(
@@ -102,11 +137,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         LOGGER,
         name="sagemcom_hosts",
         client=client,
+        gateway=gateway,
         update_interval=timedelta(seconds=update_interval),
     )
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
-        coordinator=coordinator, gateway=gateway
+        coordinator=coordinator
     )
 
     # Create gateway device in Home Assistant
@@ -115,7 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     dev_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
-        identifiers={(DOMAIN, gateway.serial_number)},
+        identifiers={(DOMAIN, gateway_unique_id(gateway))},
         manufacturer=gateway.manufacturer,
         name=f"{gateway.manufacturer} {gateway.model_number}",
         model=gateway.model_name,
@@ -124,6 +160,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_discover_capabilities()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
@@ -141,10 +178,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update when entry options update."""
-    if entry.options[CONF_SCAN_INTERVAL]:
+    scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    if scan_interval:
         data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
-        data.coordinator.update_interval = timedelta(
-            seconds=entry.options[CONF_SCAN_INTERVAL]
-        )
+        data.coordinator.update_interval = timedelta(seconds=scan_interval)
 
         await data.coordinator.async_refresh()
