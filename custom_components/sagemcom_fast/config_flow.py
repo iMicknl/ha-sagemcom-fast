@@ -20,9 +20,11 @@ from sagemcom_api.exceptions import (
     MaximumSessionCountException,
     UnsupportedHostException,
 )
+from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 import voluptuous as vol
 
 from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
+from .identity import gateway_unique_id
 from .options_flow import OptionsFlow
 
 
@@ -35,7 +37,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     _host: str | None = None
     _username: str | None = None
 
-    async def async_validate_input(self, user_input):
+    async def async_validate_input(self, user_input) -> GatewayDeviceInfo:
         """Validate user credentials."""
         self._username = user_input.get(CONF_USERNAME) or ""
         password = user_input.get(CONF_PASSWORD) or ""
@@ -58,24 +60,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         await client.login()
-        await client.logout()
-
-        return self.async_create_entry(
-            title=self._host,
-            data=user_input,
-        )
+        try:
+            return await client.get_device_info()
+        finally:
+            await client.logout()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
 
         if user_input:
-            # TODO change to gateway mac address or something more unique
-            await self.async_set_unique_id(user_input.get(CONF_HOST))
-            self._abort_if_unique_id_configured()
-
             try:
-                return await self.async_validate_input(user_input)
+                gateway = await self.async_validate_input(user_input)
             except AccessRestrictionException:
                 errors["base"] = "access_restricted"
             except AuthenticationException:
@@ -93,6 +89,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 LOGGER.exception(exception)
+            else:
+                await self.async_set_unique_id(gateway_unique_id(gateway))
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=self._host,
+                    data=user_input,
+                )
 
         return self.async_show_form(
             step_id="user",

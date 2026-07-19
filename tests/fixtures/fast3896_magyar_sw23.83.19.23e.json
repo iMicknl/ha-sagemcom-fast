@@ -1,0 +1,141 @@
+{
+  "benchmark": {
+    "batch_median_ms": 163.8,
+    "confirmed_action_count": 2,
+    "decoded_value_count": 1,
+    "runs": 3,
+    "sequential_median_ms": 16.2,
+    "speedup": 0.1,
+    "status": "ok"
+  },
+  "capabilities": {
+    "dsl_downstream_rate": {
+      "status": "missing",
+      "value_type": "-"
+    },
+    "dsl_upstream_rate": {
+      "status": "missing",
+      "value_type": "-"
+    },
+    "uptime": {
+      "status": "supported",
+      "value_type": "int"
+    },
+    "wan_status": {
+      "connected": true,
+      "status": "supported",
+      "value_type": "str"
+    }
+  },
+  "docsis_channel_schemas": {
+    "downstream": {
+      "error": {
+        "code": 16777242,
+        "description": "XMO_INVALID_PATH_ERR",
+        "exception": "UnknownException"
+      },
+      "fields": {},
+      "status": "error"
+    },
+    "upstream": {
+      "error": {
+        "code": 16777242,
+        "description": "XMO_INVALID_PATH_ERR",
+        "exception": "UnknownException"
+      },
+      "fields": {},
+      "status": "error"
+    }
+  },
+  "docsis_collections": {
+    "downstream": {
+      "count": 26,
+      "locked_count": 26,
+      "item_fields": {
+        "SNR": "float",
+        "band_width": "int",
+        "channel_id": "int",
+        "correctable_codewords": "int",
+        "frequency": "float",
+        "lock_status": "bool",
+        "modulation": "str",
+        "power_level": "float",
+        "symbol_rate": "int",
+        "uid": "int",
+        "uncorrectable_codewords": "int",
+        "unerrored_codewords": "int"
+      },
+      "path": "Device/Docsis/CableModem/Downstreams",
+      "status": "supported"
+    },
+    "upstream": {
+      "count": 7,
+      "locked_count": 7,
+      "item_fields": {
+        "channel_id": "int",
+        "frequency": "float",
+        "frequency31": "str",
+        "lock_status": "bool",
+        "modulation": "str",
+        "modulation31": "str",
+        "power_level": "float",
+        "profile_id31": "str",
+        "symbol_rate": "int",
+        "uid": "int"
+      },
+      "path": "Device/Docsis/CableModem/Upstreams",
+      "status": "supported"
+    }
+  },
+  "docsis_actual_uid_schemas": {
+    "downstream": {
+      "error": {
+        "code": 16777242,
+        "description": "XMO_INVALID_PATH_ERR",
+        "exception": "UnknownException"
+      },
+      "status": "error",
+      "xpath_template": "Device/Docsis/CableModem/Downstreams/Downstream[@uid='<collection uid>']"
+    },
+    "upstream": {
+      "error": {
+        "code": 16777242,
+        "description": "XMO_INVALID_PATH_ERR",
+        "exception": "UnknownException"
+      },
+      "status": "error",
+      "xpath_template": "Device/Docsis/CableModem/Upstreams/Upstream[@uid='<collection uid>']"
+    }
+  },
+  "docsis_units": {
+    "frequency": {
+      "api_gui_scale": "1:1",
+      "unit": "Hz"
+    },
+    "power_level": {
+      "api_gui_scale": "1:1",
+      "display_precision": 1,
+      "unit": "dBmV"
+    },
+    "SNR": {
+      "api_gui_scale": "1:1",
+      "display_precision": 1,
+      "unit": "dB"
+    },
+    "symbol_rate": {
+      "api_gui_scale": "1:1",
+      "unit": "ksps"
+    },
+    "codewords": {
+      "measurement": "cumulative_count"
+    }
+  },
+  "gateway": {
+    "api_version": "",
+    "hardware_version": "4.0",
+    "manufacturer": "Sagemcom",
+    "model_name": "FAST3896_MAGYAR",
+    "model_number": "FAST3896",
+    "software_version": "FAST3896_MAGYAR_sw23.83.19.23e"
+  }
+}

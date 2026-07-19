@@ -1,0 +1,92 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Az eszköz már be van állítva"
+    },
+    "error": {
+      "access_restricted": "A hozzáférés korlátozott",
+      "cannot_connect": "Nem sikerült kapcsolódni. Próbálja újra.",
+      "invalid_auth": "Érvénytelen hitelesítési adatok",
+      "unknown": "Váratlan hiba",
+      "login_timeout": "A kérés időtúllépés miatt megszakadt. Ennek oka lehet a helytelen titkosítási mód vagy az SSL-kapcsolat helytelen beállítása.",
+      "maximum_session_count": "Elérte az egyidejű munkamenetek maximális számát.",
+      "login_retry_error": "Túl sok bejelentkezési kísérlet. Próbálja újra később.",
+      "unsupported_host": "A megadott eszköz nem támogatja az integráció által használt Sagemcom API-végpontot. Ellenőrizze a címet, és győződjön meg arról, hogy az útválasztó támogatott."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Cím",
+          "password": "Jelszó",
+          "username": "Felhasználónév",
+          "ssl": "SSL-tanúsítvány használata",
+          "verify_ssl": "SSL-tanúsítvány ellenőrzése"
+        },
+        "description": "Adja meg az útválasztó webes felületének eléréséhez szükséges hitelesítési adatokat. Az első bejelentkezés hosszabb ideig, akár egy percig is tarthat, mert az integráció ekkor állapítja meg az útválasztó által használt titkosítási módot. További információ: [támogatott eszközök]({supported_devices_url})."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Beállítások",
+        "data": {
+          "scan_interval": "Lekérdezési időköz (másodperc)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "reboot": {
+        "name": "Újraindítás"
+      }
+    },
+    "binary_sensor": {
+      "wan_connectivity": {
+        "name": "WAN-kapcsolat"
+      }
+    },
+    "sensor": {
+      "uptime": {
+        "name": "Üzemidő"
+      },
+      "active_clients": {
+        "name": "Aktív kliensek"
+      },
+      "active_wired_clients": {
+        "name": "Aktív vezetékes kliensek"
+      },
+      "active_wireless_clients": {
+        "name": "Aktív vezeték nélküli kliensek"
+      },
+      "dsl_downstream_rate": {
+        "name": "DSL letöltési sebesség"
+      },
+      "dsl_upstream_rate": {
+        "name": "DSL feltöltési sebesség"
+      },
+      "docsis_downstream_snr": {
+        "name": "Letöltési csatorna {frequency_mhz} MHz (CH-{channel_id}) SNR"
+      },
+      "docsis_downstream_power": {
+        "name": "Letöltési csatorna {frequency_mhz} MHz (CH-{channel_id}) jelszint"
+      },
+      "docsis_upstream_power": {
+        "name": "Feltöltési csatorna {frequency_mhz} MHz (CH-{channel_id}) jelszint"
+      },
+      "docsis_unerrored_codewords": {
+        "name": "Hibátlan letöltési kódszavak"
+      },
+      "docsis_corrected_codewords": {
+        "name": "Javított letöltési kódszavak"
+      },
+      "docsis_uncorrectable_codewords": {
+        "name": "Nem javítható letöltési kódszavak"
+      },
+      "docsis_codeword_error_percentage": {
+        "name": "Letöltési kódszóhibák aránya"
+      }
+    }
+  }
+}

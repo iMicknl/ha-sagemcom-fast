@@ -16,6 +16,7 @@ from sagemcom_api.models import Device
 from . import HomeAssistantSagemcomFastData
 from .const import DOMAIN
 from .coordinator import SagemcomDataUpdateCoordinator
+from .identity import gateway_unique_id
 
 
 async def async_setup_entry(
@@ -31,10 +32,12 @@ async def async_setup_entry(
     def async_update_router() -> None:
         """Update the values of the router."""
         newly_discovered: list[SagemcomScannerEntity] = []
-        for idx, device in data.coordinator.data.items():
+        for idx in data.coordinator.data.hosts:
             if idx not in tracked:
                 tracked[idx] = SagemcomScannerEntity(
-                    data.coordinator, idx, data.gateway.serial_number
+                    data.coordinator,
+                    idx,
+                    gateway_unique_id(data.coordinator.data.gateway),
                 )
                 newly_discovered.append(tracked[idx])
         async_add_entities(newly_discovered)
@@ -59,7 +62,7 @@ class SagemcomScannerEntity(
     @property
     def device(self) -> Device:
         """Return the device entity."""
-        return self.coordinator.data[self._idx]
+        return self.coordinator.data.hosts[self._idx]
 
     @property
     def name(self) -> str:
