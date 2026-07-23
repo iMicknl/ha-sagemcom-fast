@@ -15,6 +15,7 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    InvalidSessionException,
     LoginRetryErrorException,
     MaximumSessionCountException,
     UnauthorizedException,
@@ -67,6 +68,10 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                 return self.hosts
         except AccessRestrictionException as exception:
             raise ConfigEntryAuthFailed("Access restricted") from exception
+        except InvalidSessionException as exception:
+            raise UpdateFailed(
+                "Session invalidated by router. Retrying later."
+            ) from exception
         except (AuthenticationException, UnauthorizedException) as exception:
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
         except (TimeoutError, ClientError, ConnectionError) as exception:
