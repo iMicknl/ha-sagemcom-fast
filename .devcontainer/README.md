@@ -27,7 +27,8 @@ When you open this repository with Visual Studio code you are asked to "Reopen i
 
 _If you don't see this notification, open the command palette and select `Remote-Containers: Reopen Folder in Container`._
 
-To open the repository in the devcontainer from a terminal, run:
+To open the repository in the devcontainer from a terminal, first open the
+command palette and select `Dev Containers: Install devcontainer CLI`. Then run:
 
 ```sh
 devcontainer open .
