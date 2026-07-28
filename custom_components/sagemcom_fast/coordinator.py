@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
+from typing import TYPE_CHECKING
 
 from aiohttp.client_exceptions import ClientError
 from homeassistant.core import HomeAssistant
@@ -23,6 +24,9 @@ from sagemcom_api.exceptions import (
 )
 from sagemcom_api.models import Device, DeviceInfo as GatewayDeviceInfo
 
+if TYPE_CHECKING:
+    from . import SagemcomConfigEntry
+
 
 class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     """Class to manage fetching Sagemcom data."""
@@ -32,6 +36,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         hass: HomeAssistant,
         logger: logging.Logger,
         *,
+        config_entry: SagemcomConfigEntry,
         name: str,
         client: SagemcomClient,
         update_interval: timedelta | None = None,
@@ -40,6 +45,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         super().__init__(
             hass,
             logger,
+            config_entry=config_entry,
             name=name,
             update_interval=update_interval,
         )
