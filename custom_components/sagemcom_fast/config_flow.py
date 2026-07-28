@@ -1,5 +1,8 @@
 """Config flow for Sagemcom integration."""
 
+from dataclasses import dataclass
+from typing import Any
+
 from aiohttp import ClientError
 from homeassistant import config_entries
 from homeassistant.const import (
@@ -9,12 +12,13 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    LoginConnectionException,
     LoginRetryErrorException,
     LoginTimeoutException,
     MaximumSessionCountException,
@@ -26,6 +30,53 @@ from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
 
 
+@dataclass(frozen=True, slots=True)
+class SagemcomConfigFlowValidationResult:
+    """Result of validating config flow input against a gateway."""
+
+    title: str
+    data: dict[str, Any]
+    serial_number: str | None
+    mac_address: str
+
+
+async def async_validate_input(
+    hass: HomeAssistant, user_input: dict[str, Any]
+) -> SagemcomConfigFlowValidationResult:
+    """Validate user credentials and collect the gateway identity."""
+    data = user_input.copy()
+    username = data.get(CONF_USERNAME) or ""
+    password = data.get(CONF_PASSWORD) or ""
+    data[CONF_USERNAME] = username
+    data[CONF_PASSWORD] = password
+    host = data[CONF_HOST]
+
+    session = async_get_clientsession(hass, data[CONF_VERIFY_SSL])
+    client = SagemcomClient(
+        host=host,
+        username=username,
+        password=password,
+        session=session,
+        ssl=data[CONF_SSL],
+    )
+
+    data[CONF_ENCRYPTION_METHOD] = await client.get_encryption_method()
+    LOGGER.debug("Detected encryption method: %s", data[CONF_ENCRYPTION_METHOD])
+
+    await client.login()
+    try:
+        gateway = await client.get_device_info()
+    finally:
+        await client.logout()
+
+    return SagemcomConfigFlowValidationResult(
+        title=host,
+        data=data,
+        serial_number=gateway.serial_number,
+        mac_address=gateway.mac_address,
+    )
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sagemcom."""
 
@@ -35,52 +86,34 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     _host: str | None = None
     _username: str | None = None
 
-    async def async_validate_input(self, user_input):
-        """Validate user credentials."""
-        self._username = user_input.get(CONF_USERNAME) or ""
-        password = user_input.get(CONF_PASSWORD) or ""
-        self._host = user_input[CONF_HOST]
-        ssl = user_input[CONF_SSL]
-
-        session = async_get_clientsession(self.hass, user_input[CONF_VERIFY_SSL])
-
-        client = SagemcomClient(
-            host=self._host,
-            username=self._username,
-            password=password,
-            session=session,
-            ssl=ssl,
-        )
-
-        user_input[CONF_ENCRYPTION_METHOD] = await client.get_encryption_method()
-        LOGGER.debug(
-            "Detected encryption method: %s", user_input[CONF_ENCRYPTION_METHOD]
-        )
-
-        await client.login()
-        await client.logout()
-
-        return self.async_create_entry(
-            title=self._host,
-            data=user_input,
-        )
-
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
 
         if user_input:
+            self._host = user_input[CONF_HOST]
+            self._username = user_input.get(CONF_USERNAME) or ""
+
             # TODO change to gateway mac address or something more unique
             await self.async_set_unique_id(user_input.get(CONF_HOST))
             self._abort_if_unique_id_configured()
 
             try:
-                return await self.async_validate_input(user_input)
+                validation_result = await async_validate_input(self.hass, user_input)
+                return self.async_create_entry(
+                    title=validation_result.title,
+                    data=validation_result.data,
+                )
             except AccessRestrictionException:
                 errors["base"] = "access_restricted"
             except AuthenticationException:
                 errors["base"] = "invalid_auth"
-            except (TimeoutError, ClientError, ConnectionError):
+            except (
+                TimeoutError,
+                ClientError,
+                ConnectionError,
+                LoginConnectionException,
+            ):
                 errors["base"] = "cannot_connect"
             except LoginTimeoutException:
                 errors["base"] = "login_timeout"
