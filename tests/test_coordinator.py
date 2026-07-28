@@ -12,6 +12,24 @@ from custom_components.sagemcom_fast.const import LOGGER
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
 
 
+def test_coordinator_owns_explicit_config_entry(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    sagemcom_client: Mock,
+) -> None:
+    """Coordinator construction must not depend on an active setup context."""
+    coordinator = SagemcomDataUpdateCoordinator(
+        hass,
+        LOGGER,
+        config_entry=config_entry,
+        name="sagemcom_hosts",
+        client=sagemcom_client,
+        update_interval=timedelta(seconds=30),
+    )
+
+    assert coordinator.config_entry is config_entry
+
+
 @pytest.mark.asyncio
 async def test_setup_fetches_gateway_once(
     hass: HomeAssistant,
@@ -51,6 +69,7 @@ async def test_setup_fetches_gateway_once(
 @pytest.mark.parametrize("failure_point", ["login", "get_device_info"])
 async def test_setup_preserves_primary_error_when_logout_also_fails(
     hass: HomeAssistant,
+    config_entry: MockConfigEntry,
     sagemcom_client: Mock,
     failure_point: str,
 ) -> None:
@@ -58,6 +77,7 @@ async def test_setup_preserves_primary_error_when_logout_also_fails(
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
         LOGGER,
+        config_entry=config_entry,
         name="sagemcom_hosts",
         client=sagemcom_client,
         update_interval=timedelta(seconds=30),

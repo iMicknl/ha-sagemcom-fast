@@ -67,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
         LOGGER,
+        config_entry=entry,
         name="sagemcom_hosts",
         client=client,
         update_interval=timedelta(seconds=update_interval),
