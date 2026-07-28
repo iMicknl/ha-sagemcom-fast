@@ -1,4 +1,4 @@
-"""Provides diagnostics for Overkiz."""
+"""Diagnostics support for Sagemcom F@st."""
 
 from __future__ import annotations
 
@@ -8,27 +8,25 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from . import HomeAssistantSagemcomFastData
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    """Return diagnostics for a config entry."""
+    """Return privacy-safe diagnostics from cached integration state."""
     entry_data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
-    client = entry_data.coordinator.client
+    hosts = entry_data.coordinator.hosts
 
-    full_dump = None
-    try:
-        await client.login()
-        full_dump = await client.get_value_by_xpath("*")
-    except Exception as exception:  # pylint: disable=broad-except
-        LOGGER.exception(exception)
-
-        return False
-    finally:
-        await client.logout()
-
-    data = {"raw": full_dump}
-
-    return data
+    return {
+        "integration": {"domain": DOMAIN},
+        "gateway": {
+            "manufacturer": entry_data.gateway.manufacturer,
+            "model": entry_data.gateway.model_name,
+            "software_version": entry_data.gateway.software_version,
+        },
+        "clients": {
+            "active": sum(host.active is True for host in hosts.values()),
+            "known": len(hosts),
+        },
+    }
