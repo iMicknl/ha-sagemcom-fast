@@ -1,6 +1,6 @@
 """Shared fixtures for Sagemcom F@st diagnostics tests."""
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 
 from homeassistant.const import (
     CONF_HOST,
@@ -20,11 +20,32 @@ from custom_components.sagemcom_fast import HomeAssistantSagemcomFastData
 from custom_components.sagemcom_fast.const import CONF_ENCRYPTION_METHOD, DOMAIN
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
 
+CONFIG_HOST_MARKER = "config-host-marker.example.invalid"
+CONFIG_USERNAME_MARKER = "diagnostics-username-marker"
+CONFIG_PASSWORD_MARKER = "diagnostics-password-marker"
+MANAGEMENT_URL_MARKER = "https://management-url-marker.example.invalid/api"
+ACTIVE_CLIENT_IP_MARKER = "192.0.2.101"
+ACTIVE_CLIENT_MAC_MARKER = "02:00:5E:10:00:01"
+KNOWN_CLIENT_IP_MARKER = "192.0.2.202"
+KNOWN_CLIENT_MAC_MARKER = "02:00:5E:20:00:02"
+GATEWAY_SERIAL_MARKER = "DIAGNOSTICS-GATEWAY-SERIAL-MARKER"
+GATEWAY_MAC_MARKER = "02:00:5E:30:00:03"
+PROVISIONING_CODE_MARKER = "diagnostics-provisioning-code-marker"
+CLID_MARKER = "diagnostics-clid-marker"
+
 SENSITIVE_MARKERS = (
-    "gateway.example.invalid",
-    "diagnostics-user-marker",
-    "diagnostics-password-marker",
-    "https://gateway.example.invalid/management",
+    CONFIG_HOST_MARKER,
+    CONFIG_USERNAME_MARKER,
+    CONFIG_PASSWORD_MARKER,
+    MANAGEMENT_URL_MARKER,
+    ACTIVE_CLIENT_IP_MARKER,
+    ACTIVE_CLIENT_MAC_MARKER,
+    KNOWN_CLIENT_IP_MARKER,
+    KNOWN_CLIENT_MAC_MARKER,
+    GATEWAY_SERIAL_MARKER,
+    GATEWAY_MAC_MARKER,
+    PROVISIONING_CODE_MARKER,
+    CLID_MARKER,
 )
 
 
@@ -36,9 +57,9 @@ def config_entry() -> MockConfigEntry:
         entry_id="diagnostics-entry-id",
         title="Sagemcom F@st gateway",
         data={
-            CONF_HOST: SENSITIVE_MARKERS[0],
-            CONF_USERNAME: SENSITIVE_MARKERS[1],
-            CONF_PASSWORD: SENSITIVE_MARKERS[2],
+            CONF_HOST: CONFIG_HOST_MARKER,
+            CONF_USERNAME: CONFIG_USERNAME_MARKER,
+            CONF_PASSWORD: CONFIG_PASSWORD_MARKER,
             CONF_SSL: True,
             CONF_VERIFY_SSL: True,
             CONF_ENCRYPTION_METHOD: "AES",
@@ -51,18 +72,30 @@ def config_entry() -> MockConfigEntry:
 def sagemcom_client() -> Mock:
     """Return the network client without permitting diagnostics I/O."""
     client = Mock(spec=SagemcomClient)
-    client.login = AsyncMock()
-    client.logout = AsyncMock()
-    client.get_value_by_xpath = AsyncMock(
-        return_value={
-            "ManagementServer": {"URL": SENSITIVE_MARKERS[3]},
-            "Device": {
-                "Host": SENSITIVE_MARKERS[0],
-                "Password": SENSITIVE_MARKERS[2],
-                "Username": SENSITIVE_MARKERS[1],
+    client.get_value_by_xpath.return_value = {
+        "ManagementServer": {"URL": MANAGEMENT_URL_MARKER},
+        "Device": {
+            "Host": CONFIG_HOST_MARKER,
+            "Password": CONFIG_PASSWORD_MARKER,
+            "Username": CONFIG_USERNAME_MARKER,
+            "Gateway": {
+                "CLID": CLID_MARKER,
+                "MACAddress": GATEWAY_MAC_MARKER,
+                "ProvisioningCode": PROVISIONING_CODE_MARKER,
+                "SerialNumber": GATEWAY_SERIAL_MARKER,
             },
-        }
-    )
+            "Hosts": [
+                {
+                    "IPAddress": ACTIVE_CLIENT_IP_MARKER,
+                    "PhysAddress": ACTIVE_CLIENT_MAC_MARKER,
+                },
+                {
+                    "IPAddress": KNOWN_CLIENT_IP_MARKER,
+                    "PhysAddress": KNOWN_CLIENT_MAC_MARKER,
+                },
+            ],
+        },
+    }
     return client
 
 
@@ -72,11 +105,11 @@ def coordinator(sagemcom_client: Mock) -> Mock:
     coordinator = Mock(spec=SagemcomDataUpdateCoordinator)
     coordinator.client = sagemcom_client
     coordinator.hosts = {
-        "AA:BB:CC:DD:EE:01": Device(
+        ACTIVE_CLIENT_MAC_MARKER: Device(
             uid=1,
             alias="Laptop",
-            phys_address="AA:BB:CC:DD:EE:01",
-            ip_address="192.0.2.10",
+            phys_address=ACTIVE_CLIENT_MAC_MARKER,
+            ip_address=ACTIVE_CLIENT_IP_MARKER,
             address_source="DHCP",
             dhcp_client="Laptop",
             lease_time_remaining=1800,
@@ -107,15 +140,15 @@ def coordinator(sagemcom_client: Mock) -> Mock:
             hidden=False,
             options=[],
             vendor_class_idv6=None,
-            ipv4_addresses=["192.0.2.10"],
+            ipv4_addresses=[ACTIVE_CLIENT_IP_MARKER],
             ipv6_addresses=[],
             device_type_association=None,
         ),
-        "AA:BB:CC:DD:EE:02": Device(
+        KNOWN_CLIENT_MAC_MARKER: Device(
             uid=2,
             alias="Phone",
-            phys_address="AA:BB:CC:DD:EE:02",
-            ip_address="192.0.2.11",
+            phys_address=KNOWN_CLIENT_MAC_MARKER,
+            ip_address=KNOWN_CLIENT_IP_MARKER,
             address_source="DHCP",
             dhcp_client="Phone",
             lease_time_remaining=0,
@@ -146,7 +179,7 @@ def coordinator(sagemcom_client: Mock) -> Mock:
             hidden=False,
             options=[],
             vendor_class_idv6=None,
-            ipv4_addresses=["192.0.2.11"],
+            ipv4_addresses=[KNOWN_CLIENT_IP_MARKER],
             ipv6_addresses=[],
             device_type_association=None,
         ),
@@ -158,8 +191,8 @@ def coordinator(sagemcom_client: Mock) -> Mock:
 def gateway() -> DeviceInfo:
     """Return the gateway metadata retained after integration setup."""
     return DeviceInfo(
-        mac_address="AA:BB:CC:DD:EE:FF",
-        serial_number="SF5366TN-123456789",
+        mac_address=GATEWAY_MAC_MARKER,
+        serial_number=GATEWAY_SERIAL_MARKER,
         manufacturer="Sagemcom",
         model_name="F@st 5366 TN",
         model_number="5366TN",
@@ -176,7 +209,7 @@ def gateway() -> DeviceInfo:
         internal_firmware_version="8.22.1",
         gui_firmware_version="8.22.1",
         guiapi_version=1.0,
-        provisioning_code="diagnostics-provisioning-marker",
+        provisioning_code=PROVISIONING_CODE_MARKER,
         up_time=86_400,
         first_use_date="2024-01-01",
         mode="router",
@@ -191,7 +224,7 @@ def gateway() -> DeviceInfo:
         first_connection=False,
         build_date="2024-01-01",
         spec_version="1.0",
-        CLID="clid",
+        CLID=CLID_MARKER,
         flush_device_log=False,
         locations="NL",
         api_version="1.0",
