@@ -1,6 +1,7 @@
 """Shared fixtures for Sagemcom F@st diagnostics tests."""
 
 from datetime import timedelta
+from typing import Any
 from unittest.mock import Mock
 
 from homeassistant.const import (
@@ -67,6 +68,18 @@ def config_entry() -> MockConfigEntry:
         },
         options={CONF_SCAN_INTERVAL: 30},
     )
+
+
+@pytest.fixture
+def flow_user_input() -> dict[str, Any]:
+    """Return complete user input for a Sagemcom F@st config flow."""
+    return {
+        CONF_HOST: CONFIG_HOST_MARKER,
+        CONF_USERNAME: CONFIG_USERNAME_MARKER,
+        CONF_PASSWORD: CONFIG_PASSWORD_MARKER,
+        CONF_SSL: True,
+        CONF_VERIFY_SSL: True,
+    }
 
 
 @pytest.fixture
