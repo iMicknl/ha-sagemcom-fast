@@ -24,6 +24,8 @@ from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from .const import (
     CONF_ENCRYPTION_METHOD,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
@@ -41,6 +43,46 @@ class SagemcomRuntimeData:
 
 
 type SagemcomConfigEntry = ConfigEntry[SagemcomRuntimeData]
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
+    """Migrate a host-identified entry to authenticated gateway identity."""
+    if entry.version != 1:
+        LOGGER.error(
+            "Unsupported config entry migration from version %s", entry.version
+        )
+        return False
+
+    from .config_flow import async_validate_input, gateway_unique_id
+
+    try:
+        validation_result = await async_validate_input(hass, dict(entry.data))
+    except Exception:  # pylint: disable=broad-except
+        LOGGER.exception("Failed to validate gateway identity during migration")
+        return False
+
+    unique_id = gateway_unique_id(
+        serial_number=validation_result.serial_number,
+        mac_address=validation_result.mac_address,
+    )
+    if unique_id is None:
+        LOGGER.error("Gateway did not provide a stable identity during migration")
+        return False
+
+    identity_owner = hass.config_entries.async_entry_for_domain_unique_id(
+        DOMAIN, unique_id
+    )
+    if identity_owner is not None and identity_owner.entry_id != entry.entry_id:
+        LOGGER.error("Stable gateway identity is already owned by another entry")
+        return False
+
+    hass.config_entries.async_update_entry(
+        entry,
+        unique_id=unique_id,
+        version=CONFIG_ENTRY_VERSION,
+        minor_version=CONFIG_ENTRY_MINOR_VERSION,
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
