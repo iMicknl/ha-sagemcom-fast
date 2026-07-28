@@ -23,7 +23,12 @@ async def test_diagnostics_returns_only_whitelisted_cached_summary(
     diagnostics = await async_get_config_entry_diagnostics(hass, loaded_entry)
 
     assert diagnostics == {
-        "integration": {"domain": DOMAIN},
+        "integration": {"domain": DOMAIN, "version": "0.3.8"},
+        "configuration": {"ssl": True, "verify_ssl": True},
+        "coordinator": {
+            "last_update_success": True,
+            "update_interval_seconds": 30.0,
+        },
         "gateway": {
             "manufacturer": "Sagemcom",
             "model": "F@st 5366 TN",

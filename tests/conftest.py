@@ -1,5 +1,6 @@
 """Shared fixtures for Sagemcom F@st diagnostics tests."""
 
+from datetime import timedelta
 from unittest.mock import Mock
 
 from homeassistant.const import (
@@ -104,6 +105,8 @@ def coordinator(sagemcom_client: Mock) -> Mock:
     """Return current coordinator data for one active and one known client."""
     coordinator = Mock(spec=SagemcomDataUpdateCoordinator)
     coordinator.client = sagemcom_client
+    coordinator.last_update_success = True
+    coordinator.update_interval = timedelta(seconds=30)
     coordinator.hosts = {
         ACTIVE_CLIENT_MAC_MARKER: Device(
             uid=1,
@@ -234,6 +237,7 @@ def gateway() -> DeviceInfo:
 @pytest.fixture
 def loaded_entry(
     hass: HomeAssistant,
+    enable_custom_integrations: None,
     config_entry: MockConfigEntry,
     coordinator: Mock,
     gateway: DeviceInfo,
