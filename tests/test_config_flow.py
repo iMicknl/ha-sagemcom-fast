@@ -1,14 +1,16 @@
 """Tests for the Sagemcom F@st config flow."""
 
+from dataclasses import replace
 from typing import Any
 from unittest.mock import ANY, AsyncMock, Mock, patch
 
 from aiohttp import ClientError
 from homeassistant.config_entries import SOURCE_USER
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -68,7 +70,7 @@ async def test_user_form(
 
 
 @pytest.mark.asyncio
-async def test_user_flow_creates_entry_with_validated_data(
+async def test_user_flow_creates_entry_with_validated_data_and_stable_identity(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     flow_user_input: dict[str, Any],
@@ -97,7 +99,7 @@ async def test_user_flow_creates_entry_with_validated_data(
         **flow_user_input,
         CONF_ENCRYPTION_METHOD: EncryptionMethod.MD5,
     }
-    assert result["result"].unique_id == CONFIG_HOST_MARKER
+    assert result["result"].unique_id == "mac:02:00:5e:30:00:03"
     client_class.assert_called_once_with(
         host=CONFIG_HOST_MARKER,
         username=CONFIG_USERNAME_MARKER,
@@ -108,6 +110,181 @@ async def test_user_flow_creates_entry_with_validated_data(
     sagemcom_client.login.assert_awaited_once_with()
     sagemcom_client.get_device_info.assert_awaited_once_with()
     sagemcom_client.logout.assert_awaited_once_with()
+
+
+@pytest.mark.parametrize(
+    ("serial_number", "mac_address", "expected_unique_id"),
+    [
+        (
+            GATEWAY_SERIAL_MARKER,
+            "02-00-5E-30-00-03",
+            "mac:02:00:5e:30:00:03",
+        ),
+        (GATEWAY_SERIAL_MARKER, "", f"serial:{GATEWAY_SERIAL_MARKER}"),
+        ("02:00:5e:30:00:03", "", "serial:02:00:5e:30:00:03"),
+        ("  ", "  ", None),
+    ],
+)
+def test_gateway_identity_precedence_and_normalization(
+    serial_number: str | None,
+    mac_address: str | None,
+    expected_unique_id: str | None,
+) -> None:
+    """Gateway identity must prefer normalized MAC without namespace collisions."""
+    assert (
+        config_flow.gateway_unique_id(
+            serial_number=serial_number,
+            mac_address=mac_address,
+        )
+        == expected_unique_id
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_flow_uses_serial_identity_fallback(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    flow_user_input: dict[str, Any],
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+) -> None:
+    """A non-empty serial must identify a gateway without a reported MAC."""
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
+    sagemcom_client.get_device_info.return_value = replace(gateway, mac_address="")
+
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.async_setup_entry",
+            new=AsyncMock(return_value=True),
+        ),
+    ):
+        result = await _configure_user_flow(hass, flow_user_input)
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["result"].unique_id == f"serial:{GATEWAY_SERIAL_MARKER}"
+
+
+@pytest.mark.asyncio
+async def test_user_flow_rejects_missing_gateway_identity(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    flow_user_input: dict[str, Any],
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+) -> None:
+    """Setup must not create an entry without a proven physical identity."""
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
+    sagemcom_client.get_device_info.return_value = replace(
+        gateway,
+        mac_address="",
+        serial_number=None,
+    )
+
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.async_setup_entry",
+            new=AsyncMock(return_value=True),
+        ),
+    ):
+        result = await _configure_user_flow(hass, flow_user_input)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "unknown"}
+    assert hass.config_entries.async_entries(DOMAIN) == []
+    sagemcom_client.logout.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "submitted_host",
+    [
+        "existing-host-marker.example.invalid",
+        "changed-host-marker.example.invalid",
+    ],
+)
+async def test_manual_duplicate_identity_aborts_without_host_mutation(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    flow_user_input: dict[str, Any],
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+    submitted_host: str,
+) -> None:
+    """Manual setup must not duplicate or relocate an existing router entry."""
+    existing_host = "existing-host-marker.example.invalid"
+    existing_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="mac:02:00:5e:30:00:03",
+        data={**flow_user_input, CONF_HOST: existing_host},
+    )
+    existing_entry.add_to_hass(hass)
+    flow_user_input[CONF_HOST] = submitted_host
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
+    sagemcom_client.get_device_info.return_value = gateway
+
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.async_setup_entry",
+            new=AsyncMock(return_value=True),
+        ),
+    ):
+        result = await _configure_user_flow(hass, flow_user_input)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert existing_entry.data[CONF_HOST] == existing_host
+    assert hass.config_entries.async_entries(DOMAIN) == [existing_entry]
+
+
+@pytest.mark.asyncio
+async def test_distinct_gateway_identity_values_create_distinct_entries(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    flow_user_input: dict[str, Any],
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+) -> None:
+    """A configured router must not block setup of a different router."""
+    existing_entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="mac:02:00:5e:40:00:04",
+        data={**flow_user_input, CONF_HOST: "other-host-marker.example.invalid"},
+    )
+    existing_entry.add_to_hass(hass)
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
+    sagemcom_client.get_device_info.return_value = gateway
+
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.async_setup_entry",
+            new=AsyncMock(return_value=True),
+        ),
+    ):
+        result = await _configure_user_flow(hass, flow_user_input)
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["result"].unique_id == "mac:02:00:5e:30:00:03"
+    assert {entry.unique_id for entry in hass.config_entries.async_entries(DOMAIN)} == {
+        "mac:02:00:5e:30:00:03",
+        "mac:02:00:5e:40:00:04",
+    }
 
 
 @pytest.mark.asyncio

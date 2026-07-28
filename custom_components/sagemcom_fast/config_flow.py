@@ -14,6 +14,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import format_mac
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -26,7 +27,13 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
-from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
+from .const import (
+    CONF_ENCRYPTION_METHOD,
+    DOMAIN,
+    GATEWAY_UNIQUE_ID_MAC_PREFIX,
+    GATEWAY_UNIQUE_ID_SERIAL_PREFIX,
+    LOGGER,
+)
 from .options_flow import OptionsFlow
 
 
@@ -38,6 +45,19 @@ class SagemcomConfigFlowValidationResult:
     data: dict[str, Any]
     serial_number: str | None
     mac_address: str
+
+
+def gateway_unique_id(
+    *, serial_number: str | None, mac_address: str | None
+) -> str | None:
+    """Return a namespaced stable gateway identity, preferring its MAC."""
+    if mac_address and (normalized_mac := format_mac(mac_address.strip())):
+        return f"{GATEWAY_UNIQUE_ID_MAC_PREFIX}:{normalized_mac}"
+
+    if serial_number and (normalized_serial := serial_number.strip()):
+        return f"{GATEWAY_UNIQUE_ID_SERIAL_PREFIX}:{normalized_serial}"
+
+    return None
 
 
 async def async_validate_input(
@@ -94,16 +114,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._host = user_input[CONF_HOST]
             self._username = user_input.get(CONF_USERNAME) or ""
 
-            # TODO change to gateway mac address or something more unique
-            await self.async_set_unique_id(user_input.get(CONF_HOST))
-            self._abort_if_unique_id_configured()
-
             try:
                 validation_result = await async_validate_input(self.hass, user_input)
-                return self.async_create_entry(
-                    title=validation_result.title,
-                    data=validation_result.data,
-                )
             except AccessRestrictionException:
                 errors["base"] = "access_restricted"
             except AuthenticationException:
@@ -126,6 +138,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as exception:  # pylint: disable=broad-except
                 errors["base"] = "unknown"
                 LOGGER.exception(exception)
+            else:
+                unique_id = gateway_unique_id(
+                    serial_number=validation_result.serial_number,
+                    mac_address=validation_result.mac_address,
+                )
+                if unique_id is None:
+                    errors["base"] = "unknown"
+                else:
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=validation_result.title,
+                        data=validation_result.data,
+                    )
 
         return self.async_show_form(
             step_id="user",

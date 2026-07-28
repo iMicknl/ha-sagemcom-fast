@@ -15,6 +15,9 @@ CONF_ENCRYPTION_METHOD: Final = "encryption_method"
 CONF_TRACK_WIRELESS_CLIENTS: Final = "track_wireless_clients"
 CONF_TRACK_WIRED_CLIENTS: Final = "track_wired_clients"
 
+GATEWAY_UNIQUE_ID_MAC_PREFIX: Final = "mac"
+GATEWAY_UNIQUE_ID_SERIAL_PREFIX: Final = "serial"
+
 DEFAULT_TRACK_WIRELESS_CLIENTS: Final = True
 DEFAULT_TRACK_WIRED_CLIENTS: Final = True
 
