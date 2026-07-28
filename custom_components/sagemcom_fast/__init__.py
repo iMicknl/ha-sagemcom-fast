@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from aiohttp.client_exceptions import ClientError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
@@ -16,18 +15,11 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
-from sagemcom_api.exceptions import (
-    AccessRestrictionException,
-    AuthenticationException,
-    LoginRetryErrorException,
-    MaximumSessionCountException,
-    UnauthorizedException,
-)
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from .const import (
@@ -70,34 +62,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
         ssl=ssl,
     )
 
-    try:
-        await client.login()
-    except AccessRestrictionException as exception:
-        LOGGER.error("Access restricted")
-        raise ConfigEntryAuthFailed("Access restricted") from exception
-    except (AuthenticationException, UnauthorizedException) as exception:
-        LOGGER.error("Invalid_auth")
-        raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (TimeoutError, ClientError, ConnectionError) as exception:
-        LOGGER.error("Failed to connect")
-        raise ConfigEntryNotReady("Failed to connect") from exception
-    except MaximumSessionCountException as exception:
-        LOGGER.error("Maximum session count reached")
-        raise ConfigEntryNotReady("Maximum session count reached") from exception
-    except LoginRetryErrorException as exception:
-        LOGGER.error("Too many login attempts. Retry later.")
-        raise ConfigEntryNotReady(
-            "Too many login attempts. Retry later."
-        ) from exception
-    except Exception as exception:  # pylint: disable=broad-except
-        LOGGER.exception(exception)
-        return False
-
-    try:
-        gateway = await client.get_device_info()
-    finally:
-        await client.logout()
-
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SagemcomDataUpdateCoordinator(
@@ -107,6 +71,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
         client=client,
         update_interval=timedelta(seconds=update_interval),
     )
+
+    await coordinator.async_config_entry_first_refresh()
+    if (gateway := coordinator.gateway) is None:
+        raise ConfigEntryNotReady("Gateway information unavailable")
 
     entry.runtime_data = SagemcomRuntimeData(coordinator=coordinator, gateway=gateway)
 
@@ -123,8 +91,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
         sw_version=gateway.software_version,
         configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
-
-    await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))

@@ -19,7 +19,7 @@ from sagemcom_api.exceptions import (
     MaximumSessionCountException,
     UnauthorizedException,
 )
-from sagemcom_api.models import Device
+from sagemcom_api.models import Device, DeviceInfo as GatewayDeviceInfo
 
 
 class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
@@ -44,7 +44,24 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         self.data = {}
         self.hosts: dict[str, Device] = {}
         self.client = client
+        self.gateway: GatewayDeviceInfo | None = None
         self.logger = logger
+
+    async def _async_setup(self) -> None:
+        """Fetch gateway metadata before the first hosts update."""
+        try:
+            await self.client.login()
+            self.gateway = await self.client.get_device_info()
+        except BaseException:
+            try:
+                await self.client.logout()
+            except Exception:
+                self.logger.warning(
+                    "Failed to log out after gateway setup failed", exc_info=True
+                )
+            raise
+
+        await self.client.logout()
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
