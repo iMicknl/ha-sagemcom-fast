@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Never
 
 from aiohttp.client_exceptions import ClientError
 import async_timeout
@@ -16,9 +16,14 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    BadRequestException,
+    InvalidSessionException,
+    LoginConnectionException,
     LoginRetryErrorException,
+    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
+    UnsupportedHostException,
 )
 from sagemcom_api.models import Device, DeviceInfo as GatewayDeviceInfo
 
@@ -56,18 +61,27 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     async def _async_setup(self) -> None:
         """Fetch gateway metadata before the first hosts update."""
         try:
-            await self.client.login()
-            self.gateway = await self.client.get_device_info()
-        except BaseException:
             try:
-                await self.client.logout()
-            except Exception:
-                self.logger.warning(
-                    "Failed to log out after gateway setup failed", exc_info=True
-                )
-            raise
+                await self.client.login()
+                self.gateway = await self.client.get_device_info()
+            except BaseException:
+                await self._async_logout_after_failure()
+                raise
 
-        await self.client.logout()
+            await self.client.logout()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exception:
+            self._raise_for_error(exception)
+
+    async def _async_logout_after_failure(self) -> None:
+        """Log out without replacing an in-flight operation failure."""
+        try:
+            await self.client.logout()
+        except Exception:
+            self.logger.warning(
+                "Failed to log out after gateway operation failed", exc_info=True
+            )
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
@@ -77,10 +91,12 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
                     await self.client.login()
                     await asyncio.sleep(1)
                     hosts = await self.client.get_hosts(only_active=True)
-                finally:
-                    await self.client.logout()
+                except BaseException:
+                    await self._async_logout_after_failure()
+                    raise
 
-                """Mark all device as non-active."""
+                await self.client.logout()
+
                 for idx, host in self.hosts.items():
                     host.active = False
                     self.hosts[idx] = host
@@ -88,18 +104,39 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
                     self.hosts[host.id] = host
 
                 return self.hosts
-        except AccessRestrictionException as exception:
+        except asyncio.CancelledError:
+            raise
+        except Exception as exception:
+            self._raise_for_error(exception)
+
+    @staticmethod
+    def _raise_for_error(exception: Exception) -> Never:
+        """Convert API errors to Home Assistant coordinator transitions."""
+        if isinstance(exception, InvalidSessionException):
+            raise UpdateFailed("Session is no longer valid") from exception
+        if isinstance(exception, AccessRestrictionException):
             raise ConfigEntryAuthFailed("Access restricted") from exception
-        except (AuthenticationException, UnauthorizedException) as exception:
+        if isinstance(exception, (AuthenticationException, UnauthorizedException)):
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
-        except (TimeoutError, ClientError, ConnectionError) as exception:
+        if isinstance(
+            exception,
+            (
+                TimeoutError,
+                ClientError,
+                ConnectionError,
+                LoginConnectionException,
+                LoginTimeoutException,
+            ),
+        ):
             raise UpdateFailed("Failed to connect") from exception
-        except LoginRetryErrorException as exception:
+        if isinstance(exception, LoginRetryErrorException):
             raise UpdateFailed(
                 "Too many login attempts. Retrying later."
             ) from exception
-        except MaximumSessionCountException as exception:
+        if isinstance(exception, MaximumSessionCountException):
             raise UpdateFailed("Maximum session count reached") from exception
-        except Exception as exception:
-            self.logger.exception(exception)
-            raise UpdateFailed(f"Error communicating with API: {str(exception)}")
+        if isinstance(exception, UnsupportedHostException):
+            raise UpdateFailed("Gateway API is unavailable") from exception
+        if isinstance(exception, BadRequestException):
+            raise UpdateFailed("Gateway rejected the request") from exception
+        raise UpdateFailed("Unexpected error communicating with gateway") from exception
