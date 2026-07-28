@@ -4,20 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SSL, CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
-from . import HomeAssistantSagemcomFastData
+from . import SagemcomConfigEntry
 from .const import DOMAIN
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: SagemcomConfigEntry
 ) -> dict[str, Any]:
     """Return privacy-safe diagnostics from cached integration state."""
-    entry_data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
+    entry_data = entry.runtime_data
     hosts = entry_data.coordinator.hosts
     integration_version = (await async_get_integration(hass, DOMAIN)).version
     update_interval = entry_data.coordinator.update_interval

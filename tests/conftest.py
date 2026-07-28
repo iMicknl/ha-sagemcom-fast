@@ -17,7 +17,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device, DeviceInfo
 
-from custom_components.sagemcom_fast import HomeAssistantSagemcomFastData
+from custom_components.sagemcom_fast import SagemcomRuntimeData
 from custom_components.sagemcom_fast.const import CONF_ENCRYPTION_METHOD, DOMAIN
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
 
@@ -63,7 +63,7 @@ def config_entry() -> MockConfigEntry:
             CONF_PASSWORD: CONFIG_PASSWORD_MARKER,
             CONF_SSL: True,
             CONF_VERIFY_SSL: True,
-            CONF_ENCRYPTION_METHOD: "AES",
+            CONF_ENCRYPTION_METHOD: "MD5",
         },
         options={CONF_SCAN_INTERVAL: 30},
     )
@@ -244,7 +244,7 @@ def loaded_entry(
 ) -> MockConfigEntry:
     """Load the current integration runtime-data shape into Home Assistant."""
     config_entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = (
-        HomeAssistantSagemcomFastData(coordinator=coordinator, gateway=gateway)
+    config_entry.runtime_data = SagemcomRuntimeData(
+        coordinator=coordinator, gateway=gateway
     )
     return config_entry

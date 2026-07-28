@@ -40,15 +40,18 @@ from .const import (
 from .coordinator import SagemcomDataUpdateCoordinator
 
 
-@dataclass
-class HomeAssistantSagemcomFastData:
-    """SagemcomFast data stored in the Home Assistant data object."""
+@dataclass(slots=True)
+class SagemcomRuntimeData:
+    """Runtime data for a Sagemcom F@st config entry."""
 
     coordinator: SagemcomDataUpdateCoordinator
     gateway: GatewayDeviceInfo
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+type SagemcomConfigEntry = ConfigEntry[SagemcomRuntimeData]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
     """Set up Sagemcom F@st from a config entry."""
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
@@ -105,9 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         update_interval=timedelta(seconds=update_interval),
     )
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
-        coordinator=coordinator, gateway=gateway
-    )
+    entry.runtime_data = SagemcomRuntimeData(coordinator=coordinator, gateway=gateway)
 
     # Create gateway device in Home Assistant
     dev_registry = device_registry.async_get(hass)
@@ -131,20 +132,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def update_listener(hass: HomeAssistant, entry: SagemcomConfigEntry) -> None:
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
-        data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
-        data.coordinator.update_interval = timedelta(
+        entry.runtime_data.coordinator.update_interval = timedelta(
             seconds=entry.options[CONF_SCAN_INTERVAL]
         )
 
-        await data.coordinator.async_refresh()
+        await entry.runtime_data.coordinator.async_refresh()
