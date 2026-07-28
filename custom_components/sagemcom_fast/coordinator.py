@@ -24,7 +24,7 @@ from sagemcom_api.exceptions import (
 from sagemcom_api.models import Device
 
 
-class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
+class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     """Class to manage fetching Sagemcom data."""
 
     def __init__(
@@ -35,7 +35,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         name: str,
         client: SagemcomClient,
         update_interval: timedelta | None = None,
-    ):
+    ) -> None:
         """Initialize update coordinator."""
         super().__init__(
             hass,
