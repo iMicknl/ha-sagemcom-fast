@@ -19,7 +19,12 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device, DeviceInfo
 
 from custom_components.sagemcom_fast import SagemcomRuntimeData
-from custom_components.sagemcom_fast.const import CONF_ENCRYPTION_METHOD, DOMAIN
+from custom_components.sagemcom_fast.const import (
+    CONF_ENCRYPTION_METHOD,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
+    DOMAIN,
+)
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
 
 CONFIG_HOST_MARKER = "config-host-marker.example.invalid"
@@ -58,6 +63,8 @@ def config_entry() -> MockConfigEntry:
         domain=DOMAIN,
         entry_id="diagnostics-entry-id",
         title="Sagemcom F@st gateway",
+        version=CONFIG_ENTRY_VERSION,
+        minor_version=CONFIG_ENTRY_MINOR_VERSION,
         data={
             CONF_HOST: CONFIG_HOST_MARKER,
             CONF_USERNAME: CONFIG_USERNAME_MARKER,

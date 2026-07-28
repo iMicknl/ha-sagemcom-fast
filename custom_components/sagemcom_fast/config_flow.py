@@ -29,6 +29,8 @@ import voluptuous as vol
 
 from .const import (
     CONF_ENCRYPTION_METHOD,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
     DOMAIN,
     GATEWAY_UNIQUE_ID_MAC_PREFIX,
     GATEWAY_UNIQUE_ID_SERIAL_PREFIX,
@@ -100,7 +102,8 @@ async def async_validate_input(
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Sagemcom."""
 
-    VERSION = 1
+    VERSION = CONFIG_ENTRY_VERSION
+    MINOR_VERSION = CONFIG_ENTRY_MINOR_VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     _host: str | None = None
