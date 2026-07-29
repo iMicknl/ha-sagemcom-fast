@@ -6,7 +6,13 @@ from unittest.mock import ANY, AsyncMock, Mock, patch
 
 from aiohttp import ClientError
 from homeassistant.config_entries import SOURCE_USER
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SSL,
+    CONF_USERNAME,
+    CONF_VERIFY_SSL,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
@@ -51,6 +57,23 @@ async def _configure_user_flow(
         result["flow_id"],
         user_input,
     )
+
+
+async def _start_reauth_flow(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+) -> dict[str, Any]:
+    """Start reauthentication through the linked config entry API."""
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry,
+        unique_id="mac:02:00:5e:30:00:03",
+    )
+    config_entry.async_start_reauth(hass)
+    await hass.async_block_till_done()
+
+    [progress] = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    return await hass.config_entries.flow.async_configure(progress["flow_id"])
 
 
 @pytest.mark.asyncio
@@ -433,3 +456,219 @@ async def test_validation_result_normalizes_optional_credentials(
         session=ANY,
         ssl=True,
     )
+
+
+@pytest.mark.asyncio
+async def test_reauth_shows_linked_confirmation_form(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+) -> None:
+    """A config entry must start a credential-only reauthentication form."""
+    result = await _start_reauth_flow(hass, config_entry)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {}
+    assert set(result["data_schema"].schema) == {CONF_USERNAME, CONF_PASSWORD}
+    [progress] = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert progress["context"]["entry_id"] == config_entry.entry_id
+
+
+@pytest.mark.asyncio
+async def test_reauth_rejects_invalid_credentials_without_mutating_entry(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+    sagemcom_client: Mock,
+) -> None:
+    """Invalid replacement credentials must leave the linked entry untouched."""
+    original_data = dict(config_entry.data)
+    original_options = dict(config_entry.options)
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.SHA512
+    sagemcom_client.login.side_effect = AuthenticationException(
+        "invalid credentials"
+    )
+
+    result = await _start_reauth_flow(hass, config_entry)
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ) as async_reload,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_USERNAME: "replacement-user",
+                CONF_PASSWORD: "replacement-password",
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert config_entry.data == original_data
+    assert config_entry.options == original_options
+    async_reload.assert_not_awaited()
+    sagemcom_client.get_device_info.assert_not_awaited()
+    sagemcom_client.logout.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reauth_reports_connection_failure_without_mutating_entry(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+    sagemcom_client: Mock,
+) -> None:
+    """Connection failure must keep the existing credentials and connection data."""
+    original_data = dict(config_entry.data)
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.SHA512
+    sagemcom_client.login.side_effect = LoginConnectionException("offline")
+
+    result = await _start_reauth_flow(hass, config_entry)
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ) as async_reload,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_USERNAME: "replacement-user",
+                CONF_PASSWORD: "replacement-password",
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert config_entry.data == original_data
+    async_reload.assert_not_awaited()
+    sagemcom_client.logout.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reauth_updates_only_credentials_and_encryption_then_reloads_once(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+) -> None:
+    """Successful reauthentication must preserve entry identity and connection data."""
+    original_entry_id = config_entry.entry_id
+    original_title = config_entry.title
+    original_options = dict(config_entry.options)
+    original_version = config_entry.version
+    original_minor_version = config_entry.minor_version
+    new_credentials = {
+        CONF_USERNAME: "replacement-user",
+        CONF_PASSWORD: "replacement-password",
+    }
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.SHA512
+    sagemcom_client.get_device_info.return_value = gateway
+
+    result = await _start_reauth_flow(hass, config_entry)
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ) as client_class,
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ) as async_reload,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            new_credentials,
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert config_entry.entry_id == original_entry_id
+    assert config_entry.title == original_title
+    assert config_entry.unique_id == "mac:02:00:5e:30:00:03"
+    assert config_entry.version == original_version
+    assert config_entry.minor_version == original_minor_version
+    assert config_entry.options == original_options
+    assert config_entry.data == {
+        CONF_HOST: CONFIG_HOST_MARKER,
+        **new_credentials,
+        CONF_SSL: True,
+        CONF_VERIFY_SSL: True,
+        CONF_ENCRYPTION_METHOD: EncryptionMethod.SHA512,
+    }
+    assert hass.config_entries.async_entries(DOMAIN) == [config_entry]
+    client_class.assert_called_once_with(
+        host=CONFIG_HOST_MARKER,
+        username="replacement-user",
+        password="replacement-password",
+        session=ANY,
+        ssl=True,
+    )
+    async_reload.assert_awaited_once_with(config_entry.entry_id)
+    sagemcom_client.logout.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_reauth_rejects_valid_credentials_for_a_different_router(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+    gateway: DeviceInfo,
+    sagemcom_client: Mock,
+) -> None:
+    """Reauthentication must not switch an entry to a different physical router."""
+    original_data = dict(config_entry.data)
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.SHA512
+    sagemcom_client.get_device_info.return_value = replace(
+        gateway,
+        mac_address="02:00:5E:40:00:04",
+    )
+
+    result = await _start_reauth_flow(hass, config_entry)
+    with (
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ) as async_reload,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_USERNAME: "replacement-user",
+                CONF_PASSWORD: "replacement-password",
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "wrong_device"
+    assert config_entry.data == original_data
+    assert config_entry.unique_id == "mac:02:00:5e:30:00:03"
+    assert hass.config_entries.async_entries(DOMAIN) == [config_entry]
+    async_reload.assert_not_awaited()
+    sagemcom_client.logout.assert_awaited_once_with()

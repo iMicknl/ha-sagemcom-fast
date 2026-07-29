@@ -173,6 +173,80 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reauth(self, user_input=None):
+        """Start reauthentication for the linked config entry."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        """Validate replacement credentials for the linked config entry."""
+        errors = {}
+        reauth_entry = self._get_reauth_entry()
+
+        if user_input:
+            validation_input = {**reauth_entry.data, **user_input}
+
+            try:
+                validation_result = await async_validate_input(
+                    self.hass,
+                    validation_input,
+                )
+            except AccessRestrictionException:
+                errors["base"] = "access_restricted"
+            except AuthenticationException:
+                errors["base"] = "invalid_auth"
+            except (
+                TimeoutError,
+                ClientError,
+                ConnectionError,
+                LoginConnectionException,
+            ):
+                errors["base"] = "cannot_connect"
+            except LoginTimeoutException:
+                errors["base"] = "login_timeout"
+            except MaximumSessionCountException:
+                errors["base"] = "maximum_session_count"
+            except LoginRetryErrorException:
+                errors["base"] = "login_retry_error"
+            except UnsupportedHostException:
+                errors["base"] = "unsupported_host"
+            except Exception as exception:  # pylint: disable=broad-except
+                errors["base"] = "unknown"
+                LOGGER.exception(exception)
+            else:
+                unique_id = gateway_unique_id(
+                    serial_number=validation_result.serial_number,
+                    mac_address=validation_result.mac_address,
+                )
+                if unique_id is None:
+                    errors["base"] = "unknown"
+                else:
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_mismatch(reason="wrong_device")
+                    return self.async_update_reload_and_abort(
+                        reauth_entry,
+                        data_updates={
+                            CONF_USERNAME: validation_result.data[CONF_USERNAME],
+                            CONF_PASSWORD: validation_result.data[CONF_PASSWORD],
+                            CONF_ENCRYPTION_METHOD: validation_result.data[
+                                CONF_ENCRYPTION_METHOD
+                            ],
+                        },
+                    )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_USERNAME,
+                        default=reauth_entry.data.get(CONF_USERNAME, ""),
+                    ): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
