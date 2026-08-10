@@ -4,18 +4,22 @@ import json
 from pathlib import Path
 
 
-def test_manifest_uses_released_api_runtime_fix() -> None:
-    """Keep Home Assistant's runtime API dependency aligned with development."""
+def test_manifest_api_requirement_matches_development() -> None:
     root = Path(__file__).parents[1]
     manifest = json.loads(
         (root / "custom_components/sagemcom_fast/manifest.json").read_text()
     )
 
-    requirement = next(
-        item
-        for item in manifest["requirements"]
-        if item.startswith("sagemcom_api==")
-    )
+    api_requirements = [
+        requirement
+        for requirement in manifest["requirements"]
+        if requirement.startswith("sagemcom_api==")
+    ]
+    assert len(api_requirements) == 1
 
-    assert requirement == "sagemcom_api==1.5.0"
-    assert "sagemcom_api==1.5.0" in (root / "requirements.txt").read_text().splitlines()
+    development_requirements = {
+        line.strip()
+        for line in (root / "requirements.txt").read_text().splitlines()
+        if line.strip() and not line.startswith("-r ")
+    }
+    assert api_requirements[0] in development_requirements
