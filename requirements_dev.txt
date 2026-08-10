@@ -1,4 +1,4 @@
 -r requirements.txt
 
 homeassistant==2026.7.4
-pre-commit
+prek>=0.4.13,<1.0
