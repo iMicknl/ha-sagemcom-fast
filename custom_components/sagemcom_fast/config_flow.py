@@ -116,6 +116,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             self._host = user_input[CONF_HOST]
             self._username = user_input.get(CONF_USERNAME) or ""
+            # Entries not yet set up since upgrading still use the host as
+            # unique ID, so the gateway identity check below cannot see them.
+            self._async_abort_entries_match({CONF_HOST: self._host})
 
             try:
                 validation_result = await async_validate_input(self.hass, user_input)

@@ -672,3 +672,30 @@ async def test_reauth_rejects_valid_credentials_for_a_different_router(
     assert hass.config_entries.async_entries(DOMAIN) == [config_entry]
     async_reload.assert_not_awaited()
     sagemcom_client.logout.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_user_flow_aborts_for_host_of_legacy_entry_without_io(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    flow_user_input: dict[str, Any],
+    sagemcom_client: Mock,
+) -> None:
+    """A legacy entry still identified by host must block a duplicate setup."""
+    MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=CONFIG_HOST_MARKER,
+        version=1,
+        minor_version=1,
+        data=flow_user_input,
+    ).add_to_hass(hass)
+
+    with patch(
+        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+        return_value=sagemcom_client,
+    ):
+        result = await _configure_user_flow(hass, flow_user_input)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert sagemcom_client.mock_calls == []
