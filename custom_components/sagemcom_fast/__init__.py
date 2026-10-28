@@ -108,6 +108,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         LOGGER.exception(exception)
         return False
 
+    # sagemcom_api >= 1.6 falls back to individual leaves on routers that block
+    # the DeviceInfo container, and those may not report a serial number.
+    if not gateway.serial_number:
+        gateway.serial_number = gateway.mac_address
+
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SagemcomDataUpdateCoordinator(
@@ -130,7 +135,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
         identifiers={(DOMAIN, gateway.serial_number)},
         manufacturer=gateway.manufacturer,
-        name=f"{gateway.manufacturer} {gateway.model_number}",
+        name=" ".join(
+            str(part) for part in (gateway.manufacturer, gateway.model_number) if part
+        )
+        or "Sagemcom F@st",
         model=gateway.model_name,
         sw_version=gateway.software_version,
         configuration_url=f"{'https' if ssl else 'http'}://{host}",

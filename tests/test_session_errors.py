@@ -29,7 +29,8 @@ class ReparentedInvalidSessionException(BaseSagemcomException):
 def invalid_session_type(request: pytest.FixtureRequest) -> type[Exception]:
     """Return InvalidSessionException with the old and the new base class."""
     if request.param == "sagemcom_api==1.5.0":
-        assert issubclass(InvalidSessionException, UnauthorizedException)
+        if not issubclass(InvalidSessionException, UnauthorizedException):
+            pytest.skip("installed sagemcom_api uses the new exception hierarchy")
         yield InvalidSessionException
         return
 
