@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -13,18 +12,18 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from sagemcom_api.models import Device
 
-from . import HomeAssistantSagemcomFastData
+from . import SagemcomConfigEntry
 from .const import DOMAIN
 from .coordinator import SagemcomDataUpdateCoordinator
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: SagemcomConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up device tracker from config entry."""
-    data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
+    data = entry.runtime_data
     tracked: dict[str, SagemcomScannerEntity] = {}
 
     @callback

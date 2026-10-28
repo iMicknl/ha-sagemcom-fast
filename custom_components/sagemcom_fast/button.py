@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -11,19 +10,22 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
-from . import HomeAssistantSagemcomFastData
+from . import SagemcomConfigEntry
 from .const import DOMAIN, LOGGER
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: SagemcomConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Sagemcom F@st button from a config entry."""
-    data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
     entities: list[ButtonEntity] = []
-    entities.append(SagemcomFastRebootButton(data.gateway, data.coordinator.client))
+    entities.append(
+        SagemcomFastRebootButton(
+            entry.runtime_data.gateway, entry.runtime_data.coordinator.client
+        )
+    )
 
     async_add_entities(entities)
 
