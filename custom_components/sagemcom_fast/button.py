@@ -46,7 +46,11 @@ class SagemcomFastRebootButton(ButtonEntity):
         """Handle the button press."""
         try:
             await self.client.login()
-            await self.client.reboot()
+            try:
+                await self.client.reboot()
+            except ConnectionError:
+                # The router drops the connection once it starts rebooting.
+                LOGGER.debug("Connection closed by the router after reboot request")
         except Exception as exception:  # pylint: disable=broad-except
             LOGGER.exception(exception)
 
