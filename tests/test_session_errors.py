@@ -33,25 +33,20 @@ def invalid_session_type(request: pytest.FixtureRequest) -> type[Exception]:
         yield InvalidSessionException
         return
 
-    with (
-        patch(
-            "custom_components.sagemcom_fast.InvalidSessionException",
-            ReparentedInvalidSessionException,
-        ),
-        patch(
-            "custom_components.sagemcom_fast.coordinator.InvalidSessionException",
-            ReparentedInvalidSessionException,
-        ),
+    with patch(
+        "custom_components.sagemcom_fast.coordinator.InvalidSessionException",
+        ReparentedInvalidSessionException,
     ):
         yield ReparentedInvalidSessionException
 
 
 def _coordinator(
-    hass: HomeAssistant, sagemcom_client: Mock
+    hass: HomeAssistant, config_entry: MockConfigEntry, sagemcom_client: Mock
 ) -> SagemcomDataUpdateCoordinator:
     return SagemcomDataUpdateCoordinator(
         hass,
         LOGGER,
+        config_entry=config_entry,
         name="sagemcom_hosts",
         client=sagemcom_client,
         update_interval=timedelta(seconds=30),
@@ -61,6 +56,7 @@ def _coordinator(
 @pytest.mark.parametrize("failure_point", ["login", "get_hosts", "logout"])
 async def test_update_invalid_session_is_transient(
     hass: HomeAssistant,
+    config_entry: MockConfigEntry,
     sagemcom_client: Mock,
     invalid_session_type: type[Exception],
     failure_point: str,
@@ -79,7 +75,7 @@ async def test_update_invalid_session_is_transient(
         caplog.at_level(logging.ERROR, logger=LOGGER.name),
         pytest.raises(UpdateFailed, match="Session is no longer valid") as raised,
     ):
-        await _coordinator(hass, sagemcom_client)._async_update_data()
+        await _coordinator(hass, config_entry, sagemcom_client)._async_update_data()
 
     assert raised.value.__cause__ is error
     assert not caplog.records
@@ -88,6 +84,7 @@ async def test_update_invalid_session_is_transient(
 @pytest.mark.parametrize("error_type", [LoginConnectionException, LoginTimeoutException])
 async def test_update_login_connection_failure_is_transient(
     hass: HomeAssistant,
+    config_entry: MockConfigEntry,
     sagemcom_client: Mock,
     error_type: type[Exception],
     caplog: pytest.LogCaptureFixture,
@@ -99,7 +96,7 @@ async def test_update_login_connection_failure_is_transient(
         caplog.at_level(logging.ERROR, logger=LOGGER.name),
         pytest.raises(UpdateFailed, match="Failed to connect"),
     ):
-        await _coordinator(hass, sagemcom_client)._async_update_data()
+        await _coordinator(hass, config_entry, sagemcom_client)._async_update_data()
 
     assert not caplog.records
 
