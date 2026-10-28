@@ -14,7 +14,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
@@ -22,10 +22,10 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
+from .config_flow import gateway_unique_id
 from .const import (
     CONF_ENCRYPTION_METHOD,
     CONFIG_ENTRY_MINOR_VERSION,
-    CONFIG_ENTRY_VERSION,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
@@ -45,44 +45,40 @@ class SagemcomRuntimeData:
 type SagemcomConfigEntry = ConfigEntry[SagemcomRuntimeData]
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
-    """Migrate a host-identified entry to authenticated gateway identity."""
-    if entry.version != 1:
-        LOGGER.error(
-            "Unsupported config entry migration from version %s", entry.version
-        )
-        return False
-
-    from .config_flow import async_validate_input, gateway_unique_id
-
-    try:
-        validation_result = await async_validate_input(hass, dict(entry.data))
-    except Exception:  # pylint: disable=broad-except
-        LOGGER.exception("Failed to validate gateway identity during migration")
-        return False
+@callback
+def _async_adopt_gateway_unique_id(
+    hass: HomeAssistant, entry: SagemcomConfigEntry, gateway: GatewayDeviceInfo
+) -> None:
+    """Replace a legacy host-based unique ID with the gateway identity."""
+    # Done during setup rather than in async_migrate_entry: a failed migration
+    # is never retried, so a router that is unreachable at startup would leave
+    # the entry broken until Home Assistant restarts.
+    if entry.minor_version >= CONFIG_ENTRY_MINOR_VERSION:
+        return
 
     unique_id = gateway_unique_id(
-        serial_number=validation_result.serial_number,
-        mac_address=validation_result.mac_address,
+        serial_number=gateway.serial_number, mac_address=gateway.mac_address
     )
     if unique_id is None:
-        LOGGER.error("Gateway did not provide a stable identity during migration")
-        return False
+        LOGGER.warning(
+            "Router did not report a MAC address or serial number; "
+            "keeping the host-based unique ID"
+        )
+        return
 
-    identity_owner = hass.config_entries.async_entry_for_domain_unique_id(
-        DOMAIN, unique_id
-    )
-    if identity_owner is not None and identity_owner.entry_id != entry.entry_id:
-        LOGGER.error("Stable gateway identity is already owned by another entry")
-        return False
+    owner = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
+    if owner is not None and owner.entry_id != entry.entry_id:
+        LOGGER.warning(
+            "Router of entry %s is also configured by entry %s; "
+            "keeping the host-based unique ID",
+            entry.title,
+            owner.title,
+        )
+        return
 
     hass.config_entries.async_update_entry(
-        entry,
-        unique_id=unique_id,
-        version=CONFIG_ENTRY_VERSION,
-        minor_version=CONFIG_ENTRY_MINOR_VERSION,
+        entry, unique_id=unique_id, minor_version=CONFIG_ENTRY_MINOR_VERSION
     )
-    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
@@ -120,6 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
         raise ConfigEntryNotReady("Gateway information unavailable")
 
     entry.runtime_data = SagemcomRuntimeData(coordinator=coordinator, gateway=gateway)
+    _async_adopt_gateway_unique_id(hass, entry, gateway)
 
     # Create gateway device in Home Assistant
     dev_registry = device_registry.async_get(hass)

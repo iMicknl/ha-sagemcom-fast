@@ -11,8 +11,10 @@ LOGGER: logging.Logger = logging.getLogger(__package__)
 
 DOMAIN: Final = "sagemcom_fast"
 
-CONFIG_ENTRY_VERSION: Final = 2
-CONFIG_ENTRY_MINOR_VERSION: Final = 1
+# Minor version 2 marks a gateway-derived unique ID. A major bump would make
+# existing entries fail to load after a downgrade to an earlier release.
+CONFIG_ENTRY_VERSION: Final = 1
+CONFIG_ENTRY_MINOR_VERSION: Final = 2
 
 CONF_ENCRYPTION_METHOD: Final = "encryption_method"
 CONF_TRACK_WIRELESS_CLIENTS: Final = "track_wireless_clients"

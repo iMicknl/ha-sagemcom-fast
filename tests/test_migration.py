@@ -1,11 +1,19 @@
-"""Tests for Sagemcom F@st config entry migration."""
+"""Tests for adopting a stable router identity on legacy config entries."""
 
+from collections.abc import Iterator
 from dataclasses import replace
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -14,9 +22,15 @@ from sagemcom_api.exceptions import AuthenticationException, LoginConnectionExce
 from sagemcom_api.models import DeviceInfo
 
 from custom_components.sagemcom_fast import config_flow
-from custom_components.sagemcom_fast.const import CONF_ENCRYPTION_METHOD
+from custom_components.sagemcom_fast.const import (
+    CONF_ENCRYPTION_METHOD,
+    CONFIG_ENTRY_MINOR_VERSION,
+    DOMAIN,
+)
 
 from .conftest import CONFIG_HOST_MARKER
+
+STABLE_UNIQUE_ID = "mac:02:00:5e:30:00:03"
 
 
 @pytest.fixture
@@ -24,9 +38,9 @@ def legacy_entry(
     hass: HomeAssistant,
     flow_user_input: dict[str, Any],
 ) -> MockConfigEntry:
-    """Return a version-1 entry identified by its connection host."""
+    """Return an entry created by a release that used the host as unique ID."""
     entry = MockConfigEntry(
-        domain=config_flow.DOMAIN,
+        domain=DOMAIN,
         entry_id="legacy-entry-id",
         title="Living room gateway",
         unique_id=CONFIG_HOST_MARKER,
@@ -51,7 +65,7 @@ def registry_entries(
     device_registry = dr.async_get(hass)
     device = device_registry.async_get_or_create(
         config_entry_id=legacy_entry.entry_id,
-        identifiers={(config_flow.DOMAIN, "legacy-gateway-device")},
+        identifiers={(DOMAIN, "legacy-gateway-device")},
         manufacturer="Sagemcom",
         name="Gateway",
     )
@@ -63,24 +77,53 @@ def registry_entries(
 
     entity_registry = er.async_get(hass)
     entity = entity_registry.async_get_or_create(
-        "sensor",
-        config_flow.DOMAIN,
+        "device_tracker",
+        DOMAIN,
         "legacy-entity-unique-id",
         config_entry=legacy_entry,
         device_id=device.id,
-        original_name="Gateway status",
+        original_name="Phone",
     )
     entity = entity_registry.async_update_entity(
         entity.entity_id,
-        icon="mdi:router-wireless",
-        name="Router health",
+        icon="mdi:cellphone",
+        name="My phone",
     )
 
     return device, entity
 
 
+@pytest.fixture
+def patched_gateway(
+    sagemcom_client: Mock, gateway: DeviceInfo
+) -> Iterator[Mock]:
+    """Route setup and config flows to the mocked gateway client."""
+    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
+    sagemcom_client.get_device_info.return_value = gateway
+    sagemcom_client.get_hosts.return_value = []
+    with (
+        patch(
+            "custom_components.sagemcom_fast.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.config_flow.SagemcomClient",
+            return_value=sagemcom_client,
+        ),
+        patch(
+            "custom_components.sagemcom_fast.coordinator.asyncio.sleep",
+            new=AsyncMock(),
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
+            new=AsyncMock(),
+        ),
+    ):
+        yield sagemcom_client
+
+
 def _entry_state(entry: MockConfigEntry) -> dict[str, Any]:
-    """Capture all config-entry fields migration is allowed to affect."""
+    """Capture the config entry fields identity adoption may affect."""
     return {
         "entry_id": entry.entry_id,
         "title": entry.title,
@@ -101,207 +144,157 @@ def _assert_registry_ownership(
     """Assert registry IDs, ownership, and user customization are unchanged."""
     device = dr.async_get(hass).async_get(expected_device.id)
     assert device is not None
-    assert device.id == expected_device.id
-    assert device.config_entries == {entry.entry_id}
+    assert device.config_entry_id == entry.entry_id
     assert device.name_by_user == "Downstairs router"
 
     entity = er.async_get(hass).async_get(expected_entity.entity_id)
     assert entity is not None
-    assert entity.entity_id == expected_entity.entity_id
     assert entity.unique_id == "legacy-entity-unique-id"
     assert entity.config_entry_id == entry.entry_id
     assert entity.device_id == device.id
-    assert entity.name == "Router health"
-    assert entity.icon == "mdi:router-wireless"
+    assert entity.name == "My phone"
+    assert entity.icon == "mdi:cellphone"
 
 
-@pytest.mark.asyncio
-async def test_migration_preserves_entry_and_registry_ownership(
+def test_config_entry_major_version_is_downgrade_safe() -> None:
+    """Earlier releases reject entries whose major version exceeds theirs."""
+    assert config_flow.ConfigFlow.VERSION == 1
+
+
+async def test_setup_adopts_gateway_identity(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     legacy_entry: MockConfigEntry,
     registry_entries: tuple[dr.DeviceEntry, er.RegistryEntry],
-    gateway: DeviceInfo,
-    sagemcom_client: Mock,
+    patched_gateway: Mock,
 ) -> None:
-    """Migration must change only version metadata and authenticated identity."""
+    """Setup must change only the unique ID and minor version."""
     original_state = _entry_state(legacy_entry)
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.get_device_info.return_value = gateway
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
+    assert await hass.config_entries.async_setup(legacy_entry.entry_id)
 
-    assert result is True
-    assert hass.config_entries.async_get_entry(legacy_entry.entry_id) is legacy_entry
-    assert legacy_entry.entry_id == original_state["entry_id"]
-    assert legacy_entry.title == original_state["title"]
-    assert legacy_entry.data == original_state["data"]
-    assert legacy_entry.options == original_state["options"]
-    assert legacy_entry.version == 2
-    assert legacy_entry.minor_version == 1
-    assert legacy_entry.unique_id == "mac:02:00:5e:30:00:03"
+    assert legacy_entry.state is ConfigEntryState.LOADED
+    assert _entry_state(legacy_entry) == {
+        **original_state,
+        "unique_id": STABLE_UNIQUE_ID,
+        "minor_version": CONFIG_ENTRY_MINOR_VERSION,
+    }
     _assert_registry_ownership(hass, legacy_entry, *registry_entries)
-    sagemcom_client.logout.assert_awaited_once_with()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "error",
-    [
-        LoginConnectionException("gateway offline"),
-        AuthenticationException("credentials rejected"),
-    ],
-)
-async def test_migration_login_failure_is_atomic(
+async def test_unreachable_router_retries_and_adopts_identity_later(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     legacy_entry: MockConfigEntry,
     registry_entries: tuple[dr.DeviceEntry, er.RegistryEntry],
-    sagemcom_client: Mock,
-    error: Exception,
+    patched_gateway: Mock,
 ) -> None:
-    """Connection and authentication failures must leave the entry untouched."""
+    """An offline router at startup must not leave the entry permanently failed."""
     original_state = _entry_state(legacy_entry)
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.login.side_effect = error
+    patched_gateway.login.side_effect = LoginConnectionException("router offline")
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
+    assert not await hass.config_entries.async_setup(legacy_entry.entry_id)
 
-    assert result is False
+    assert legacy_entry.state is ConfigEntryState.SETUP_RETRY
     assert _entry_state(legacy_entry) == original_state
-    assert hass.config_entries.async_entries(config_flow.DOMAIN) == [legacy_entry]
+
+    patched_gateway.login.side_effect = None
+    assert await hass.config_entries.async_reload(legacy_entry.entry_id)
+
+    assert legacy_entry.state is ConfigEntryState.LOADED
+    assert legacy_entry.unique_id == STABLE_UNIQUE_ID
     _assert_registry_ownership(hass, legacy_entry, *registry_entries)
-    sagemcom_client.logout.assert_not_awaited()
 
 
-@pytest.mark.asyncio
-async def test_migration_authenticated_failure_logs_out_without_mutation(
+async def test_rejected_credentials_can_be_fixed_by_reauth(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     legacy_entry: MockConfigEntry,
-    registry_entries: tuple[dr.DeviceEntry, er.RegistryEntry],
-    sagemcom_client: Mock,
+    patched_gateway: Mock,
 ) -> None:
-    """Failure after login must log out and leave the entry untouched."""
-    original_state = _entry_state(legacy_entry)
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.get_device_info.side_effect = TimeoutError("gateway timed out")
+    """Reauth must accept a legacy entry whose unique ID is still its host."""
+    patched_gateway.login.side_effect = AuthenticationException("rejected")
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
+    assert not await hass.config_entries.async_setup(legacy_entry.entry_id)
+    await hass.async_block_till_done()
 
-    assert result is False
-    assert _entry_state(legacy_entry) == original_state
-    _assert_registry_ownership(hass, legacy_entry, *registry_entries)
-    sagemcom_client.logout.assert_awaited_once_with()
+    assert legacy_entry.state is ConfigEntryState.SETUP_ERROR
+    [flow] = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert flow["context"]["source"] == SOURCE_REAUTH
 
-
-@pytest.mark.asyncio
-async def test_migration_missing_stable_identity_is_atomic(
-    hass: HomeAssistant,
-    enable_custom_integrations: None,
-    legacy_entry: MockConfigEntry,
-    registry_entries: tuple[dr.DeviceEntry, er.RegistryEntry],
-    gateway: DeviceInfo,
-    sagemcom_client: Mock,
-) -> None:
-    """Migration must reject a gateway without an authenticated stable identity."""
-    original_state = _entry_state(legacy_entry)
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.get_device_info.return_value = replace(
-        gateway,
-        mac_address="",
-        serial_number=None,
+    patched_gateway.login.side_effect = None
+    result = await hass.config_entries.flow.async_configure(
+        flow["flow_id"],
+        {CONF_USERNAME: "replacement-user", CONF_PASSWORD: "replacement-password"},
     )
+    await hass.async_block_till_done()
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
-
-    assert result is False
-    assert _entry_state(legacy_entry) == original_state
-    _assert_registry_ownership(hass, legacy_entry, *registry_entries)
-    sagemcom_client.logout.assert_awaited_once_with()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert legacy_entry.state is ConfigEntryState.LOADED
+    assert legacy_entry.data[CONF_USERNAME] == "replacement-user"
+    assert legacy_entry.unique_id == STABLE_UNIQUE_ID
 
 
-@pytest.mark.asyncio
-async def test_migration_identity_collision_is_atomic(
+async def test_identity_owned_by_another_entry_keeps_legacy_identity(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     legacy_entry: MockConfigEntry,
     registry_entries: tuple[dr.DeviceEntry, er.RegistryEntry],
     flow_user_input: dict[str, Any],
-    gateway: DeviceInfo,
-    sagemcom_client: Mock,
+    patched_gateway: Mock,
 ) -> None:
-    """Migration must never overwrite or merge another identity owner."""
-    target_owner = MockConfigEntry(
-        domain=config_flow.DOMAIN,
+    """A duplicate entry for the same router must keep working unchanged."""
+    owner = MockConfigEntry(
+        domain=DOMAIN,
         entry_id="stable-entry-id",
-        title="Existing stable gateway",
-        unique_id="mac:02:00:5e:30:00:03",
-        version=2,
-        minor_version=1,
-        data={**flow_user_input, CONF_HOST: "other-gateway.example.invalid"},
-        options={CONF_SCAN_INTERVAL: 60},
+        unique_id=STABLE_UNIQUE_ID,
+        version=1,
+        minor_version=CONFIG_ENTRY_MINOR_VERSION,
+        data={**flow_user_input, CONF_HOST: "other-host.example.invalid"},
     )
-    target_owner.add_to_hass(hass)
+    owner.add_to_hass(hass)
     original_legacy_state = _entry_state(legacy_entry)
-    original_owner_state = _entry_state(target_owner)
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.get_device_info.return_value = gateway
+    original_owner_state = _entry_state(owner)
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
+    assert await hass.config_entries.async_setup(legacy_entry.entry_id)
 
-    assert result is False
+    assert legacy_entry.state is ConfigEntryState.LOADED
     assert _entry_state(legacy_entry) == original_legacy_state
-    assert _entry_state(target_owner) == original_owner_state
-    assert hass.config_entries.async_entries(config_flow.DOMAIN) == [
-        legacy_entry,
-        target_owner,
-    ]
+    assert _entry_state(owner) == original_owner_state
     _assert_registry_ownership(hass, legacy_entry, *registry_entries)
-    sagemcom_client.logout.assert_awaited_once_with()
 
 
-@pytest.mark.asyncio
-async def test_migration_uses_serial_identity_fallback(
+async def test_serial_identity_fallback(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     legacy_entry: MockConfigEntry,
     gateway: DeviceInfo,
-    sagemcom_client: Mock,
+    patched_gateway: Mock,
 ) -> None:
-    """Migration must support gateways that report only a stable serial."""
-    sagemcom_client.get_encryption_method.return_value = EncryptionMethod.MD5
-    sagemcom_client.get_device_info.return_value = replace(gateway, mac_address="")
+    """Routers that report only a serial number must still get a stable ID."""
+    patched_gateway.get_device_info.return_value = replace(gateway, mac_address="")
 
-    with patch(
-        "custom_components.sagemcom_fast.config_flow.SagemcomClient",
-        return_value=sagemcom_client,
-    ):
-        result = await legacy_entry.async_migrate(hass)
+    assert await hass.config_entries.async_setup(legacy_entry.entry_id)
 
-    assert result is True
-    assert legacy_entry.version == 2
-    assert (
-        legacy_entry.unique_id
-        == "serial:DIAGNOSTICS-GATEWAY-SERIAL-MARKER"
+    assert legacy_entry.unique_id == "serial:DIAGNOSTICS-GATEWAY-SERIAL-MARKER"
+    assert legacy_entry.minor_version == CONFIG_ENTRY_MINOR_VERSION
+
+
+async def test_missing_identity_keeps_legacy_identity(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    legacy_entry: MockConfigEntry,
+    gateway: DeviceInfo,
+    patched_gateway: Mock,
+) -> None:
+    """A router without MAC or serial must keep loading with its host ID."""
+    original_state = _entry_state(legacy_entry)
+    patched_gateway.get_device_info.return_value = replace(
+        gateway, mac_address="", serial_number=""
     )
+
+    assert await hass.config_entries.async_setup(legacy_entry.entry_id)
+
+    assert legacy_entry.state is ConfigEntryState.LOADED
+    assert _entry_state(legacy_entry) == original_state

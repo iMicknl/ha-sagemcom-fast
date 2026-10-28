@@ -217,11 +217,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     serial_number=validation_result.serial_number,
                     mac_address=validation_result.mac_address,
                 )
-                if unique_id is None:
+                # A legacy entry's unique ID is still its host, which never
+                # matches; setup adopts the gateway identity after the reload.
+                legacy_entry = reauth_entry.minor_version < CONFIG_ENTRY_MINOR_VERSION
+                if unique_id is None and not legacy_entry:
                     errors["base"] = "unknown"
                 else:
-                    await self.async_set_unique_id(unique_id)
-                    self._abort_if_unique_id_mismatch(reason="wrong_device")
+                    if not legacy_entry:
+                        await self.async_set_unique_id(unique_id)
+                        self._abort_if_unique_id_mismatch(reason="wrong_device")
                     return self.async_update_reload_and_abort(
                         reauth_entry,
                         data_updates={
