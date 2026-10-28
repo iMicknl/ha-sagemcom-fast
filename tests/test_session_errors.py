@@ -10,40 +10,13 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from sagemcom_api.exceptions import (
-    BaseSagemcomException,
     InvalidSessionException,
     LoginConnectionException,
     LoginTimeoutException,
-    UnauthorizedException,
 )
 
 from custom_components.sagemcom_fast.const import DOMAIN, LOGGER
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
-
-
-class ReparentedInvalidSessionException(BaseSagemcomException):
-    """InvalidSessionException as defined by sagemcom_api >= 1.5.1."""
-
-
-@pytest.fixture(params=["sagemcom_api==1.5.0", "sagemcom_api>=1.5.1"])
-def invalid_session_type(request: pytest.FixtureRequest) -> type[Exception]:
-    """Return InvalidSessionException with the old and the new base class."""
-    if request.param == "sagemcom_api==1.5.0":
-        assert issubclass(InvalidSessionException, UnauthorizedException)
-        yield InvalidSessionException
-        return
-
-    with (
-        patch(
-            "custom_components.sagemcom_fast.InvalidSessionException",
-            ReparentedInvalidSessionException,
-        ),
-        patch(
-            "custom_components.sagemcom_fast.coordinator.InvalidSessionException",
-            ReparentedInvalidSessionException,
-        ),
-    ):
-        yield ReparentedInvalidSessionException
 
 
 def _coordinator(
@@ -62,12 +35,11 @@ def _coordinator(
 async def test_update_invalid_session_is_transient(
     hass: HomeAssistant,
     sagemcom_client: Mock,
-    invalid_session_type: type[Exception],
     failure_point: str,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """An invalid session after the library retry must not require reauth."""
-    error = invalid_session_type("session expired")
+    error = InvalidSessionException("session expired")
     getattr(sagemcom_client, failure_point).side_effect = error
     sagemcom_client.get_hosts.return_value = []
 
@@ -109,7 +81,7 @@ async def _async_setup(
 ) -> None:
     config_entry.add_to_hass(hass)
     with patch(
-        "custom_components.sagemcom_fast.SagemcomClient",
+        "custom_components.sagemcom_fast.api.SagemcomClient",
         return_value=sagemcom_client,
     ):
         assert not await hass.config_entries.async_setup(config_entry.entry_id)
@@ -122,11 +94,10 @@ async def test_setup_invalid_session_retries_setup(
     enable_custom_integrations: None,
     config_entry: MockConfigEntry,
     sagemcom_client: Mock,
-    invalid_session_type: type[Exception],
     failure_point: str,
 ) -> None:
     """An invalid session during setup must retry instead of starting reauth."""
-    getattr(sagemcom_client, failure_point).side_effect = invalid_session_type(
+    getattr(sagemcom_client, failure_point).side_effect = InvalidSessionException(
         "session expired"
     )
 
