@@ -7,7 +7,6 @@ from datetime import timedelta
 import logging
 
 from aiohttp.client_exceptions import ClientError
-import async_timeout
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -49,7 +48,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
         try:
-            async with async_timeout.timeout(25):
+            async with asyncio.timeout(25):
                 try:
                     await self.client.login()
                     await asyncio.sleep(1)
