@@ -1,6 +1,7 @@
 """Tests for Sagemcom F@st diagnostics."""
 
 import json
+from pathlib import Path
 from unittest.mock import Mock
 
 from homeassistant.config_entries import ConfigEntry
@@ -14,6 +15,12 @@ from custom_components.sagemcom_fast.diagnostics import (
 
 from .conftest import SENSITIVE_MARKERS
 
+MANIFEST_VERSION = json.loads(
+    (
+        Path(__file__).parents[1] / "custom_components/sagemcom_fast/manifest.json"
+    ).read_text()
+)["version"]
+
 
 @pytest.mark.asyncio
 async def test_diagnostics_returns_only_whitelisted_cached_summary(
@@ -23,7 +30,7 @@ async def test_diagnostics_returns_only_whitelisted_cached_summary(
     diagnostics = await async_get_config_entry_diagnostics(hass, loaded_entry)
 
     assert diagnostics == {
-        "integration": {"domain": DOMAIN, "version": "0.3.8"},
+        "integration": {"domain": DOMAIN, "version": MANIFEST_VERSION},
         "configuration": {"ssl": True, "verify_ssl": True},
         "coordinator": {
             "last_update_success": True,
