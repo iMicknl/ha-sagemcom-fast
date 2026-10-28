@@ -229,3 +229,24 @@ async def test_update_error_recovers_on_later_refresh(
     assert coordinator.last_update_success is True
     assert entity.available is True
     assert coordinator.data == {}
+
+
+@pytest.mark.asyncio
+async def test_unexpected_error_message_names_the_cause(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    sagemcom_client: Mock,
+) -> None:
+    """Home Assistant only logs the UpdateFailed message, so it must carry the cause."""
+    coordinator = SagemcomDataUpdateCoordinator(
+        hass,
+        LOGGER,
+        config_entry=config_entry,
+        name="sagemcom_hosts",
+        client=sagemcom_client,
+        update_interval=timedelta(seconds=30),
+    )
+    sagemcom_client.login.side_effect = KeyError("device_info")
+
+    with pytest.raises(UpdateFailed, match="KeyError\\(.device_info.\\)"):
+        await coordinator._async_update_data()

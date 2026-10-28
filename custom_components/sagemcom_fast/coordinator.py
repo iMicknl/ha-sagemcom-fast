@@ -140,4 +140,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
             raise UpdateFailed("Gateway API is unavailable") from exception
         if isinstance(exception, BadRequestException):
             raise UpdateFailed("Gateway rejected the request") from exception
-        raise UpdateFailed("Unexpected error communicating with gateway") from exception
+        # Home Assistant logs only the UpdateFailed message, not its cause.
+        raise UpdateFailed(
+            f"Unexpected error communicating with gateway: {exception!r}"
+        ) from exception
