@@ -25,7 +25,9 @@ from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     InvalidSessionException,
+    LoginConnectionException,
     LoginRetryErrorException,
+    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -85,7 +87,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except (AuthenticationException, UnauthorizedException) as exception:
         LOGGER.error("Invalid_auth")
         raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (TimeoutError, ClientError, ConnectionError) as exception:
+    except (
+        TimeoutError,
+        ClientError,
+        ConnectionError,
+        LoginConnectionException,
+        LoginTimeoutException,
+    ) as exception:
         LOGGER.error("Failed to connect")
         raise ConfigEntryNotReady("Failed to connect") from exception
     except MaximumSessionCountException as exception:

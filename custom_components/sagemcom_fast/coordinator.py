@@ -15,7 +15,9 @@ from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
     InvalidSessionException,
+    LoginConnectionException,
     LoginRetryErrorException,
+    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -73,7 +75,13 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             raise ConfigEntryAuthFailed("Access restricted") from exception
         except (AuthenticationException, UnauthorizedException) as exception:
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
-        except (TimeoutError, ClientError, ConnectionError) as exception:
+        except (
+            TimeoutError,
+            ClientError,
+            ConnectionError,
+            LoginConnectionException,
+            LoginTimeoutException,
+        ) as exception:
             raise UpdateFailed("Failed to connect") from exception
         except LoginRetryErrorException as exception:
             raise UpdateFailed(

@@ -1,4 +1,4 @@
-"""Tests for transient gateway session failures."""
+"""Tests for transient gateway session and connection failures."""
 
 from datetime import timedelta
 import logging
@@ -12,6 +12,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from sagemcom_api.exceptions import (
     BaseSagemcomException,
     InvalidSessionException,
+    LoginConnectionException,
+    LoginTimeoutException,
     UnauthorizedException,
 )
 
@@ -83,6 +85,25 @@ async def test_update_invalid_session_is_transient(
     assert not caplog.records
 
 
+@pytest.mark.parametrize("error_type", [LoginConnectionException, LoginTimeoutException])
+async def test_update_login_connection_failure_is_transient(
+    hass: HomeAssistant,
+    sagemcom_client: Mock,
+    error_type: type[Exception],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Login connectivity failures must not log a traceback on every poll."""
+    sagemcom_client.login.side_effect = error_type("router offline")
+
+    with (
+        caplog.at_level(logging.ERROR, logger=LOGGER.name),
+        pytest.raises(UpdateFailed, match="Failed to connect"),
+    ):
+        await _coordinator(hass, sagemcom_client)._async_update_data()
+
+    assert not caplog.records
+
+
 async def _async_setup(
     hass: HomeAssistant, config_entry: MockConfigEntry, sagemcom_client: Mock
 ) -> None:
@@ -113,3 +134,19 @@ async def test_setup_invalid_session_retries_setup(
 
     assert config_entry.state is ConfigEntryState.SETUP_RETRY
     assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+
+
+@pytest.mark.parametrize("error_type", [LoginConnectionException, LoginTimeoutException])
+async def test_setup_login_connection_failure_retries_setup(
+    hass: HomeAssistant,
+    enable_custom_integrations: None,
+    config_entry: MockConfigEntry,
+    sagemcom_client: Mock,
+    error_type: type[Exception],
+) -> None:
+    """An unreachable router at startup must not leave the entry failed."""
+    sagemcom_client.login.side_effect = error_type("router offline")
+
+    await _async_setup(hass, config_entry, sagemcom_client)
+
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
