@@ -7,7 +7,6 @@ from datetime import timedelta
 import logging
 
 from aiohttp.client_exceptions import ClientError
-import async_timeout
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -15,7 +14,10 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    InvalidSessionException,
+    LoginConnectionException,
     LoginRetryErrorException,
+    LoginTimeoutException,
     MaximumSessionCountException,
     UnauthorizedException,
 )
@@ -49,7 +51,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
         try:
-            async with async_timeout.timeout(25):
+            async with asyncio.timeout(25):
                 try:
                     await self.client.login()
                     await asyncio.sleep(1)
@@ -65,11 +67,21 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     self.hosts[host.id] = host
 
                 return self.hosts
+        # Must precede UnauthorizedException: sagemcom_api < 1.5.1 subclasses it,
+        # but an expired session is transient and must not trigger reauth.
+        except InvalidSessionException as exception:
+            raise UpdateFailed("Session is no longer valid") from exception
         except AccessRestrictionException as exception:
             raise ConfigEntryAuthFailed("Access restricted") from exception
         except (AuthenticationException, UnauthorizedException) as exception:
             raise ConfigEntryAuthFailed("Invalid credentials") from exception
-        except (TimeoutError, ClientError, ConnectionError) as exception:
+        except (
+            TimeoutError,
+            ClientError,
+            ConnectionError,
+            LoginConnectionException,
+            LoginTimeoutException,
+        ) as exception:
             raise UpdateFailed("Failed to connect") from exception
         except LoginRetryErrorException as exception:
             raise UpdateFailed(
