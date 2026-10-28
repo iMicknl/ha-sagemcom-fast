@@ -22,6 +22,7 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
+from .api import create_client
 from .const import CONF_ENCRYPTION_METHOD, DOMAIN, LOGGER
 from .options_flow import OptionsFlow
 
@@ -52,13 +53,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ssl=ssl,
         )
 
-        user_input[CONF_ENCRYPTION_METHOD] = await client.get_encryption_method()
-        LOGGER.debug(
-            "Detected encryption method: %s", user_input[CONF_ENCRYPTION_METHOD]
-        )
+        encryption_method = await client.get_encryption_method()
+        if encryption_method is None:
+            raise AuthenticationException("No login method accepted the credentials")
+        user_input[CONF_ENCRYPTION_METHOD] = encryption_method
+        LOGGER.debug("Detected encryption method: %s", encryption_method)
 
-        await client.login()
-        await client.logout()
+        # Validate with the same client setup the config entry will use.
+        client, owned_session = create_client(
+            self.hass,
+            host=self._host,
+            username=self._username,
+            password=password,
+            encryption_method=encryption_method,
+            ssl=ssl,
+            verify_ssl=user_input[CONF_VERIFY_SSL],
+        )
+        try:
+            await client.login()
+            await client.logout()
+        finally:
+            if owned_session is not None:
+                owned_session.detach()
 
         return self.async_create_entry(
             title=self._host,

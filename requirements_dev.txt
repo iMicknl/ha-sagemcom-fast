@@ -1,5 +1,5 @@
 -r requirements.txt
 
-homeassistant==2026.10.3
+homeassistant==2026.10.4
 pre-commit
-pytest-homeassistant-custom-component==0.13.374
+pytest-homeassistant-custom-component==0.13.375
