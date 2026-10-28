@@ -31,7 +31,11 @@ async def test_diagnostics_returns_only_whitelisted_cached_summary(
 
     assert diagnostics == {
         "integration": {"domain": DOMAIN, "version": MANIFEST_VERSION},
-        "configuration": {"ssl": True, "verify_ssl": True},
+        "configuration": {
+            "ssl": True,
+            "verify_ssl": True,
+            "encryption_method": "MD5",
+        },
         "coordinator": {
             "last_update_success": True,
             "update_interval_seconds": 30.0,

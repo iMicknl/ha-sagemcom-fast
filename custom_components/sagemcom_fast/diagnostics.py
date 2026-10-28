@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
 from . import HomeAssistantSagemcomFastData
-from .const import DOMAIN
+from .const import CONF_ENCRYPTION_METHOD, DOMAIN
 
 
 async def async_get_config_entry_diagnostics(
@@ -30,6 +30,7 @@ async def async_get_config_entry_diagnostics(
         "configuration": {
             "ssl": entry.data[CONF_SSL],
             "verify_ssl": entry.data[CONF_VERIFY_SSL],
+            "encryption_method": entry.data.get(CONF_ENCRYPTION_METHOD),
         },
         "coordinator": {
             "last_update_success": entry_data.coordinator.last_update_success,

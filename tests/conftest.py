@@ -63,7 +63,7 @@ def config_entry() -> MockConfigEntry:
             CONF_PASSWORD: CONFIG_PASSWORD_MARKER,
             CONF_SSL: True,
             CONF_VERIFY_SSL: True,
-            CONF_ENCRYPTION_METHOD: "AES",
+            CONF_ENCRYPTION_METHOD: "MD5",
         },
         options={CONF_SCAN_INTERVAL: 30},
     )
