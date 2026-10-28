@@ -17,9 +17,8 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, device_registry
+from homeassistant.helpers import device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -33,6 +32,7 @@ from sagemcom_api.exceptions import (
 )
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
+from .api import create_client
 from .const import (
     CONF_ENCRYPTION_METHOD,
     DEFAULT_SCAN_INTERVAL,
@@ -60,15 +60,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     ssl = entry.data[CONF_SSL]
     verify_ssl = entry.data[CONF_VERIFY_SSL]
 
-    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
-    client = SagemcomClient(
+    client, owned_session = create_client(
+        hass,
         host=host,
         username=username,
         password=password,
-        authentication_method=EncryptionMethod(encryption_method),
-        session=session,
+        encryption_method=EncryptionMethod(encryption_method),
         ssl=ssl,
+        verify_ssl=verify_ssl,
     )
+    if owned_session is not None:
+        entry.async_on_unload(owned_session.detach)
 
     try:
         await client.login()
@@ -76,8 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             gateway = await client.get_device_info()
         finally:
             await client.logout()
-    # Must precede UnauthorizedException: sagemcom_api < 1.5.1 subclasses it,
-    # but an expired session is transient and must not trigger reauth.
+    # An expired session is transient and must not trigger reauth.
     except InvalidSessionException as exception:
         LOGGER.error("Session is no longer valid")
         raise ConfigEntryNotReady("Session is no longer valid") from exception

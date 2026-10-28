@@ -67,8 +67,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     self.hosts[host.id] = host
 
                 return self.hosts
-        # Must precede UnauthorizedException: sagemcom_api < 1.5.1 subclasses it,
-        # but an expired session is transient and must not trigger reauth.
+        # An expired session is transient and must not trigger reauth.
         except InvalidSessionException as exception:
             raise UpdateFailed("Session is no longer valid") from exception
         except AccessRestrictionException as exception:

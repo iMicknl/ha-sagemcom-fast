@@ -25,7 +25,7 @@ async def _async_setup(
     sagemcom_client.get_hosts.return_value = []
     config_entry.add_to_hass(hass)
     with patch(
-        "custom_components.sagemcom_fast.SagemcomClient",
+        "custom_components.sagemcom_fast.api.SagemcomClient",
         return_value=sagemcom_client,
     ):
         assert await hass.config_entries.async_setup(config_entry.entry_id)
