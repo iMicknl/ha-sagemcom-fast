@@ -6,6 +6,12 @@ updates:
       interval: "daily"
       time: "08:00"
     open-pull-requests-limit: 10
+    groups:
+      # pytest-homeassistant-custom-component pins an exact homeassistant release.
+      homeassistant:
+        patterns:
+          - "homeassistant"
+          - "pytest-homeassistant-custom-component"
 
   - package-ecosystem: github-actions
     directory: "/"
