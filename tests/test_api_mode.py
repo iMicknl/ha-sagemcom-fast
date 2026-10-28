@@ -122,12 +122,14 @@ async def test_config_flow_validates_with_entry_client_setup(
     hass: HomeAssistant,
     enable_custom_integrations: None,
     sagemcom_client: Mock,
+    gateway: DeviceInfo,
     detected: EncryptionMethod,
     api_mode: ApiMode,
 ) -> None:
     """Credentials must be validated the same way the config entry connects."""
     detection_client = Mock(spec=SagemcomClient)
     detection_client.get_encryption_method.return_value = detected
+    sagemcom_client.get_device_info.return_value = gateway
 
     result, validation_class = await _async_submit_user_step(
         hass, detection_client, sagemcom_client

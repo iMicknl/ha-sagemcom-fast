@@ -1,6 +1,7 @@
 """Shared fixtures for Sagemcom F@st diagnostics tests."""
 
 from datetime import timedelta
+from typing import Any
 from unittest.mock import Mock
 
 from homeassistant.const import (
@@ -18,7 +19,12 @@ from sagemcom_api.client import SagemcomClient
 from sagemcom_api.models import Device, DeviceInfo
 
 from custom_components.sagemcom_fast import SagemcomRuntimeData
-from custom_components.sagemcom_fast.const import CONF_ENCRYPTION_METHOD, DOMAIN
+from custom_components.sagemcom_fast.const import (
+    CONF_ENCRYPTION_METHOD,
+    CONFIG_ENTRY_MINOR_VERSION,
+    CONFIG_ENTRY_VERSION,
+    DOMAIN,
+)
 from custom_components.sagemcom_fast.coordinator import SagemcomDataUpdateCoordinator
 
 CONFIG_HOST_MARKER = "config-host-marker.example.invalid"
@@ -57,6 +63,8 @@ def config_entry() -> MockConfigEntry:
         domain=DOMAIN,
         entry_id="diagnostics-entry-id",
         title="Sagemcom F@st gateway",
+        version=CONFIG_ENTRY_VERSION,
+        minor_version=CONFIG_ENTRY_MINOR_VERSION,
         data={
             CONF_HOST: CONFIG_HOST_MARKER,
             CONF_USERNAME: CONFIG_USERNAME_MARKER,
@@ -67,6 +75,18 @@ def config_entry() -> MockConfigEntry:
         },
         options={CONF_SCAN_INTERVAL: 30},
     )
+
+
+@pytest.fixture
+def flow_user_input() -> dict[str, Any]:
+    """Return complete user input for a Sagemcom F@st config flow."""
+    return {
+        CONF_HOST: CONFIG_HOST_MARKER,
+        CONF_USERNAME: CONFIG_USERNAME_MARKER,
+        CONF_PASSWORD: CONFIG_PASSWORD_MARKER,
+        CONF_SSL: True,
+        CONF_VERIFY_SSL: True,
+    }
 
 
 @pytest.fixture
