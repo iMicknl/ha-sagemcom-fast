@@ -62,7 +62,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         try:
             try:
                 await self.client.login()
-                self.gateway = await self.client.get_device_info()
+                gateway = await self.client.get_device_info()
             except BaseException:
                 await self._async_logout_after_failure()
                 raise
@@ -72,6 +72,12 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
             raise
         except Exception as exception:
             self._raise_for_error(exception)
+
+        # sagemcom_api >= 1.6 falls back to individual leaves on routers that block
+        # the DeviceInfo container, and those may not report a serial number.
+        if not gateway.serial_number:
+            gateway.serial_number = gateway.mac_address
+        self.gateway = gateway
 
     async def _async_logout_after_failure(self) -> None:
         """Log out without replacing an in-flight operation failure."""
@@ -111,8 +117,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     @staticmethod
     def _raise_for_error(exception: Exception) -> Never:
         """Convert API errors to Home Assistant coordinator transitions."""
-        # Must precede UnauthorizedException: sagemcom_api < 1.5.1 subclasses it,
-        # but an expired session is transient and must not trigger reauth.
+        # An expired session is transient and must not trigger reauth.
         if isinstance(exception, InvalidSessionException):
             raise UpdateFailed("Session is no longer valid") from exception
         if isinstance(exception, AccessRestrictionException):

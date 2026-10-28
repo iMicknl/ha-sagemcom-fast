@@ -27,6 +27,7 @@ from sagemcom_api.exceptions import (
 )
 import voluptuous as vol
 
+from .api import create_client
 from .const import (
     CONF_ENCRYPTION_METHOD,
     CONFIG_ENTRY_MINOR_VERSION,
@@ -82,14 +83,31 @@ async def async_validate_input(
         ssl=data[CONF_SSL],
     )
 
-    data[CONF_ENCRYPTION_METHOD] = await client.get_encryption_method()
-    LOGGER.debug("Detected encryption method: %s", data[CONF_ENCRYPTION_METHOD])
+    encryption_method = await client.get_encryption_method()
+    if encryption_method is None:
+        raise AuthenticationException("No login method accepted the credentials")
+    data[CONF_ENCRYPTION_METHOD] = encryption_method
+    LOGGER.debug("Detected encryption method: %s", encryption_method)
 
-    await client.login()
+    # Validate with the same client setup the config entry will use.
+    client, owned_session = create_client(
+        hass,
+        host=host,
+        username=username,
+        password=password,
+        encryption_method=encryption_method,
+        ssl=data[CONF_SSL],
+        verify_ssl=data[CONF_VERIFY_SSL],
+    )
     try:
-        gateway = await client.get_device_info()
+        await client.login()
+        try:
+            gateway = await client.get_device_info()
+        finally:
+            await client.logout()
     finally:
-        await client.logout()
+        if owned_session is not None:
+            owned_session.detach()
 
     return SagemcomConfigFlowValidationResult(
         title=host,

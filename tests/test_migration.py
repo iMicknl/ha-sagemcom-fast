@@ -103,7 +103,7 @@ def patched_gateway(
     sagemcom_client.get_hosts.return_value = []
     with (
         patch(
-            "custom_components.sagemcom_fast.SagemcomClient",
+            "custom_components.sagemcom_fast.api.SagemcomClient",
             return_value=sagemcom_client,
         ),
         patch(

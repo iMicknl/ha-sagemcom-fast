@@ -16,12 +16,12 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, device_registry
+from homeassistant.helpers import device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from sagemcom_api.client import SagemcomClient
 from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
+from .api import create_client
 from .config_flow import gateway_unique_id
 from .const import (
     CONF_ENCRYPTION_METHOD,
@@ -90,15 +90,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
     ssl = entry.data[CONF_SSL]
     verify_ssl = entry.data[CONF_VERIFY_SSL]
 
-    session = aiohttp_client.async_get_clientsession(hass, verify_ssl=verify_ssl)
-    client = SagemcomClient(
+    client, owned_session = create_client(
+        hass,
         host=host,
         username=username,
         password=password,
-        authentication_method=EncryptionMethod(encryption_method),
-        session=session,
+        encryption_method=EncryptionMethod(encryption_method),
         ssl=ssl,
+        verify_ssl=verify_ssl,
     )
+    if owned_session is not None:
+        entry.async_on_unload(owned_session.detach)
 
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
@@ -126,7 +128,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> 
         connections={(CONNECTION_NETWORK_MAC, gateway.mac_address)},
         identifiers={(DOMAIN, gateway.serial_number)},
         manufacturer=gateway.manufacturer,
-        name=f"{gateway.manufacturer} {gateway.model_number}",
+        name=" ".join(
+            str(part) for part in (gateway.manufacturer, gateway.model_number) if part
+        )
+        or "Sagemcom F@st",
         model=gateway.model_name,
         sw_version=gateway.software_version,
         configuration_url=f"{'https' if ssl else 'http'}://{host}",

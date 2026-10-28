@@ -41,6 +41,16 @@ from .conftest import (
 )
 
 
+@pytest.fixture(autouse=True)
+def validation_client_class(sagemcom_client: Mock):
+    """Route the client that validates like the config entry to the same mock."""
+    with patch(
+        "custom_components.sagemcom_fast.api.SagemcomClient",
+        return_value=sagemcom_client,
+    ) as client_class:
+        yield client_class
+
+
 async def _configure_user_flow(
     hass: HomeAssistant,
     user_input: dict[str, Any],

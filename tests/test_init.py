@@ -27,7 +27,7 @@ async def test_setup_stores_typed_runtime_data_on_entry(
 
     with (
         patch(
-            "custom_components.sagemcom_fast.SagemcomClient",
+            "custom_components.sagemcom_fast.api.SagemcomClient",
             return_value=sagemcom_client,
         ),
         patch(
@@ -65,7 +65,7 @@ async def test_unload_does_not_require_domain_data(
 
     with (
         patch(
-            "custom_components.sagemcom_fast.SagemcomClient",
+            "custom_components.sagemcom_fast.api.SagemcomClient",
             return_value=sagemcom_client,
         ),
         patch(
