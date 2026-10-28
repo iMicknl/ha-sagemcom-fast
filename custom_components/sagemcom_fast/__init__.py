@@ -24,6 +24,7 @@ from sagemcom_api.enums import EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
+    InvalidSessionException,
     LoginRetryErrorException,
     MaximumSessionCountException,
     UnauthorizedException,
@@ -69,6 +70,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     try:
         await client.login()
+        try:
+            gateway = await client.get_device_info()
+        finally:
+            await client.logout()
+    # Must precede UnauthorizedException: sagemcom_api < 1.5.1 subclasses it,
+    # but an expired session is transient and must not trigger reauth.
+    except InvalidSessionException as exception:
+        LOGGER.error("Session is no longer valid")
+        raise ConfigEntryNotReady("Session is no longer valid") from exception
     except AccessRestrictionException as exception:
         LOGGER.error("Access restricted")
         raise ConfigEntryAuthFailed("Access restricted") from exception
@@ -89,11 +99,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     except Exception as exception:  # pylint: disable=broad-except
         LOGGER.exception(exception)
         return False
-
-    try:
-        gateway = await client.get_device_info()
-    finally:
-        await client.logout()
 
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
