@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from aiohttp.client_exceptions import ClientError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
@@ -16,20 +15,10 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from sagemcom_api.enums import EncryptionMethod
-from sagemcom_api.exceptions import (
-    AccessRestrictionException,
-    AuthenticationException,
-    InvalidSessionException,
-    LoginConnectionException,
-    LoginRetryErrorException,
-    LoginTimeoutException,
-    MaximumSessionCountException,
-    UnauthorizedException,
-)
 from sagemcom_api.models import DeviceInfo as GatewayDeviceInfo
 
 from .api import create_client
@@ -43,15 +32,18 @@ from .const import (
 from .coordinator import SagemcomDataUpdateCoordinator
 
 
-@dataclass
-class HomeAssistantSagemcomFastData:
-    """SagemcomFast data stored in the Home Assistant data object."""
+@dataclass(slots=True)
+class SagemcomRuntimeData:
+    """Runtime data for a Sagemcom F@st config entry."""
 
     coordinator: SagemcomDataUpdateCoordinator
     gateway: GatewayDeviceInfo
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+type SagemcomConfigEntry = ConfigEntry[SagemcomRuntimeData]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
     """Set up Sagemcom F@st from a config entry."""
     host = entry.data[CONF_HOST]
     username = entry.data[CONF_USERNAME]
@@ -72,61 +64,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if owned_session is not None:
         entry.async_on_unload(owned_session.detach)
 
-    try:
-        await client.login()
-        try:
-            gateway = await client.get_device_info()
-        finally:
-            await client.logout()
-    # An expired session is transient and must not trigger reauth.
-    except InvalidSessionException as exception:
-        LOGGER.error("Session is no longer valid")
-        raise ConfigEntryNotReady("Session is no longer valid") from exception
-    except AccessRestrictionException as exception:
-        LOGGER.error("Access restricted")
-        raise ConfigEntryAuthFailed("Access restricted") from exception
-    except (AuthenticationException, UnauthorizedException) as exception:
-        LOGGER.error("Invalid_auth")
-        raise ConfigEntryAuthFailed("Invalid credentials") from exception
-    except (
-        TimeoutError,
-        ClientError,
-        ConnectionError,
-        LoginConnectionException,
-        LoginTimeoutException,
-    ) as exception:
-        LOGGER.error("Failed to connect")
-        raise ConfigEntryNotReady("Failed to connect") from exception
-    except MaximumSessionCountException as exception:
-        LOGGER.error("Maximum session count reached")
-        raise ConfigEntryNotReady("Maximum session count reached") from exception
-    except LoginRetryErrorException as exception:
-        LOGGER.error("Too many login attempts. Retry later.")
-        raise ConfigEntryNotReady(
-            "Too many login attempts. Retry later."
-        ) from exception
-    except Exception as exception:  # pylint: disable=broad-except
-        LOGGER.exception(exception)
-        return False
-
-    # sagemcom_api >= 1.6 falls back to individual leaves on routers that block
-    # the DeviceInfo container, and those may not report a serial number.
-    if not gateway.serial_number:
-        gateway.serial_number = gateway.mac_address
-
     update_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = SagemcomDataUpdateCoordinator(
         hass,
         LOGGER,
+        config_entry=entry,
         name="sagemcom_hosts",
         client=client,
         update_interval=timedelta(seconds=update_interval),
     )
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
-        coordinator=coordinator, gateway=gateway
-    )
+    await coordinator.async_config_entry_first_refresh()
+    if (gateway := coordinator.gateway) is None:
+        raise ConfigEntryNotReady("Gateway information unavailable")
+
+    entry.runtime_data = SagemcomRuntimeData(coordinator=coordinator, gateway=gateway)
 
     # Create gateway device in Home Assistant
     dev_registry = device_registry.async_get(hass)
@@ -145,28 +98,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         configuration_url=f"{'https' if ssl else 'http'}://{host}",
     )
 
-    await coordinator.async_config_entry_first_refresh()
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: SagemcomConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def update_listener(hass: HomeAssistant, entry: SagemcomConfigEntry) -> None:
     """Update when entry options update."""
     if entry.options[CONF_SCAN_INTERVAL]:
-        data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
-        data.coordinator.update_interval = timedelta(
+        entry.runtime_data.coordinator.update_interval = timedelta(
             seconds=entry.options[CONF_SCAN_INTERVAL]
         )
 
-        await data.coordinator.async_refresh()
+        await entry.runtime_data.coordinator.async_refresh()
