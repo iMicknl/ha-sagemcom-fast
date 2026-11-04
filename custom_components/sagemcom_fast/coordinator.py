@@ -246,8 +246,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                 continue
 
             section = (
-                response[0].g
-                et("wireless", {})
+                response[0].get("wireless", {})
                 if isinstance(response, list) and response
                 else {}
             )
@@ -281,7 +280,6 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     wireless["ssid"][ssid_name] = {
                         **wireless["ssid"].get(ssid_name, {}),
                         "ssid_status": ssid_data.get("ssidStatus"),
-                        "enable": ssid_data.get("ssidStatus", "").lower() != "down",
                     }
 
         self.router_data["wireless"] = wireless

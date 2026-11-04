@@ -298,15 +298,17 @@ def _wifi_ssid_status(data, ssid):
     if not ssid_info:
         return None
 
-    if not ssid_info.get("enable", False):
-        return "Disabled"
+    # Treat an explicitly disabled SSID as Down.
+    if ssid_info.get("enable") is False:
+        return "Down"
 
-    status = ssid_info.get("ssid_status")
+    # Prefer the operational SSID status, falling back to AP status.
+    status = ssid_info.get("ssid_status") or ssid_info.get("ap_status")
 
-    if status:
-        return status.capitalize()
+    if isinstance(status, str) and status.strip():
+        return status.strip().capitalize()
 
-    return ssid_info.get("ap_status", "Unknown").capitalize()
+    return "Unknown"
 
 @dataclass(frozen=True, kw_only=True)
 class SagemcomSensorDescription(SensorEntityDescription):
