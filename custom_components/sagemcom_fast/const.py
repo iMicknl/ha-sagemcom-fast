@@ -21,6 +21,10 @@ DEFAULT_TRACK_WIRED_CLIENTS: Final = True
 ATTR_MANUFACTURER: Final = "Sagemcom"
 
 MIN_SCAN_INTERVAL: Final = 10
-DEFAULT_SCAN_INTERVAL: Final = 10
+DEFAULT_SCAN_INTERVAL: Final = 30
 
-PLATFORMS: list[Platform] = [Platform.DEVICE_TRACKER, Platform.BUTTON]
+PLATFORMS: list[Platform] = [
+    Platform.DEVICE_TRACKER,
+    Platform.BUTTON,
+    Platform.SENSOR,
+]

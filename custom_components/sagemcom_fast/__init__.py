@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from sagemcom_api.enums import EncryptionMethod
+from sagemcom_api.enums import ApiMode, EncryptionMethod
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
     AuthenticationException,
@@ -60,7 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     ssl = entry.data[CONF_SSL]
     verify_ssl = entry.data[CONF_VERIFY_SSL]
 
-    client, owned_session = create_client(
+    client, owned_session, api_mode = create_client(
         hass,
         host=host,
         username=username,
@@ -121,9 +121,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         LOGGER,
         name="sagemcom_hosts",
         client=client,
+        host=host,
+        ssl=ssl,
+        rest_api=api_mode is ApiMode.REST,
         update_interval=timedelta(seconds=update_interval),
     )
-
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = HomeAssistantSagemcomFastData(
         coordinator=coordinator, gateway=gateway
     )
