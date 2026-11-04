@@ -741,5 +741,5 @@ class SagemcomFastSensor(
             sw_version=device.get("softwareVersion"),
             hw_version=device.get("hardwareVersion"),
             serial_number=device.get("serialnumber"),
-            configuration_url="http://192.168.0.1",
+            configuration_url=f"{'https' if self.coordinator.ssl else 'http'}://{self.coordinator.host}",
         )
