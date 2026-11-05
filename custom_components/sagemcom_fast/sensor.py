@@ -341,6 +341,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="firmware",
         name="Firmware version",
         icon="mdi:package-variant",
+        entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: _device_info(d).get("softwareVersion"),
     ),
@@ -348,6 +349,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="kernel",
         name="Kernel version",
         icon="mdi:linux",
+        entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: _device_info(d).get("kernelVersion"),
     ),
@@ -355,6 +357,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="reboot_count",
         name="Router reboot count",
         icon="mdi:restart",
+        entity_registry_enabled_default=False,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _integer(_device(d).get("numberofboots")),
     ),
@@ -375,18 +378,16 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="memory_total",
         name="Total memory",
         icon="mdi:memory",
-        native_unit_of_measurement="MiB",
+        entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d: (
-        _device_info(d).get("totalMemory", 0) / 1024
-        if _device_info(d).get("totalMemory") is not None
-        else None
-        ),
+        native_unit_of_measurement=UnitOfInformation.KILOBYTES,
+        value_fn=lambda d: _integer(_device_info(d).get("totalMemory")),
     ),
     SagemcomSensorDescription(
         key="memory_free",
         name="Free memory",
         icon="mdi:memory",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("freeMemory")),
     ),
@@ -394,6 +395,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="memory_cached",
         name="Cached memory",
         icon="mdi:memory",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("cachedMemory")),
     ),
@@ -402,6 +404,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="flash_total",
         name="Total flash memory",
         icon="mdi:harddisk",
+        entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("totalFlashMemory")),
@@ -410,6 +413,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="flash_free",
         name="Free flash memory",
         icon="mdi:harddisk",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("freeFlashMemory")),
     ),
@@ -433,6 +437,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_rx_bytes",
         name="LAN received",
         icon="mdi:download-network",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfInformation.BYTES,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "rx", "bytes"),
@@ -441,6 +446,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_tx_bytes",
         name="LAN transmitted",
         icon="mdi:upload-network",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfInformation.BYTES,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "tx", "bytes"),
@@ -449,6 +455,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_rx_errors",
         name="LAN receive errors",
         icon="mdi:alert-circle-outline",
+        entity_registry_enabled_default=False,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "rx", "packetserrors"),
     ),
@@ -456,6 +463,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_tx_errors",
         name="LAN transmit errors",
         icon="mdi:alert-circle-outline",
+        entity_registry_enabled_default=False,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "tx", "packetserrors"),
     ),
@@ -463,6 +471,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_rx_discards",
         name="LAN receive discards",
         icon="mdi:alert-circle-outline",
+        entity_registry_enabled_default=False,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "rx", "packetsdiscards"),
     ),
@@ -470,6 +479,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="lan_tx_discards",
         name="LAN transmit discards",
         icon="mdi:alert-circle-outline",
+        entity_registry_enabled_default=False,
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: _total_interface_counter(d, "tx", "packetsdiscards"),
     ),
@@ -525,11 +535,12 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: d.get("traffic_rates", {}).get("wan_tx_rate"),
     ),
-    # Connected hosts.
+    # Known hosts.
     SagemcomSensorDescription(
-        key="connected_hosts",
-        name="Connected devices",
+        key="known_hosts",
+        name="Known hosts",
         icon="mdi:devices",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="devices",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_connected_host_count,
@@ -546,6 +557,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="inactive_hosts",
         name="Inactive router hosts",
         icon="mdi:lan-disconnect",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="devices",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_inactive_host_count,
@@ -556,6 +568,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="usb_devices",
         name="Connected USB devices",
         icon="mdi:usb",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="devices",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_usb_device_count,
@@ -573,12 +586,14 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="wifi_24_channel",
         name="2.4 GHz Wi-Fi channel",
         icon="mdi:wifi",
+        entity_registry_enabled_default=False,
         value_fn=lambda d: _wifi_channel(d, "24"),
     ),
     SagemcomSensorDescription(
         key="wifi_24_width",
         name="2.4 GHz Wi-Fi channel width",
         icon="mdi:wifi",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="MHz",
         value_fn=lambda d: _wifi_width(d, "24"),
     ),
@@ -586,6 +601,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="wifi_24_max_bitrate",
         name="2.4 GHz Wi-Fi maximum bitrate",
         icon="mdi:speedometer",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="Mbps",
         value_fn=lambda d: _wifi_bitrate(d, "24"),
     ),
@@ -615,12 +631,14 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="wifi_5_channel",
         name="5 GHz Wi-Fi channel",
         icon="mdi:wifi",
+        entity_registry_enabled_default=False,
         value_fn=lambda d: _wifi_channel(d, "5"),
     ),
     SagemcomSensorDescription(
         key="wifi_5_width",
         name="5 GHz Wi-Fi channel width",
         icon="mdi:wifi",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="MHz",
         value_fn=lambda d: _wifi_width(d, "5"),
     ),
@@ -628,6 +646,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="wifi_5_max_bitrate",
         name="5 GHz Wi-Fi maximum bitrate",
         icon="mdi:speedometer",
+        entity_registry_enabled_default=False,
         native_unit_of_measurement="Mbps",
         value_fn=lambda d: _wifi_bitrate(d, "5"),
     ),
@@ -654,6 +673,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="mesh_backhaul_quality",
         name="Mesh backhaul quality",
         icon="mdi:access-point-network",
+        entity_registry_enabled_default=False,
         value_fn=lambda d: (
             _mesh_info(d).get("backhaul", {}).get("linkQuality")
         ),
@@ -662,6 +682,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         key="mesh_backhaul_type",
         name="Mesh backhaul type",
         icon="mdi:access-point-network",
+        entity_registry_enabled_default=False,
         value_fn=lambda d: (
             _mesh_info(d).get("backhaul", {}).get("linkType")
         ),
@@ -700,9 +721,6 @@ class SagemcomFastSensor(
 
     _attr_has_entity_name = True
 
-    # Keep all new sensors disabled until explicitly enabled.
-    _attr_entity_registry_enabled_default = False
-
     def __init__(
         self,
         coordinator: SagemcomDataUpdateCoordinator,
@@ -731,17 +749,23 @@ class SagemcomFastSensor(
     @property
     def device_info(self) -> DeviceInfo:
         """Link the sensor to the router device."""
-        device = _device_info(self.coordinator.router_data)
-
         return DeviceInfo(
             identifiers={
                 (DOMAIN, self.gateway.serial_number)
             },
-            manufacturer=device.get("manufacturer", "Sagemcom"),
-            model=device.get("productClass", "FAST5598"),
-            name="Sagemcom FAST5598",
-            sw_version=device.get("softwareVersion"),
-            hw_version=device.get("hardwareVersion"),
-            serial_number=device.get("serialnumber"),
-            configuration_url=f"{'https' if self.coordinator.ssl else 'http'}://{self.coordinator.host}",
+            manufacturer=self.gateway.manufacturer,
+            model=self.gateway.model_name,
+            name=" ".join(
+                str(part)
+                for part in (
+                    self.gateway.manufacturer,
+                    self.gateway.model_number,
+                )
+                if part
+            ) or "Sagemcom F@st",
+            sw_version=self.gateway.software_version,
+            configuration_url=(
+                f"{'https' if self.coordinator.ssl else 'http'}://"
+                f"{self.coordinator.host}"
+            ),
         )
