@@ -8,14 +8,9 @@ import logging
 import time
 
 from aiohttp.client_exceptions import ClientError
-
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
-
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from sagemcom_api.client import SagemcomClient
 from sagemcom_api.exceptions import (
     AccessRestrictionException,
@@ -44,6 +39,7 @@ REST_ENDPOINT_INTERVALS = {
     "wireless_stats_5": 120,
     "mesh": 300,
 }
+
 
 class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
     """Manage fetching Sagemcom router and host data."""
@@ -84,7 +80,6 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         self.router_data: dict = {}
         self._endpoint_last_fetched: dict[str, float] = {}
 
-
     async def _get_json(self, path: str) -> object | None:
         """Fetch one REST API endpoint.
 
@@ -108,7 +103,6 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                 exception,
             )
             return None
-
 
     def _calculate_interface_rates(self, router_data):
         """Calculate interface traffic rates using actual elapsed time."""
@@ -171,7 +165,6 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
 
         return rates
 
-
     async def _async_update_router_data(self) -> None:
         """Retrieve additional FAST5598 REST API information."""
 
@@ -204,10 +197,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         }
 
         due_results = await asyncio.gather(
-            *[
-                self._get_json(path)
-                for path in due_endpoints.values()
-            ],
+            *[self._get_json(path) for path in due_endpoints.values()],
             return_exceptions=True,
         )
 
@@ -288,13 +278,9 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         fresh_lan_stats = fresh_results.get("lan_stats")
 
         if fresh_lan_stats is not None:
-            self.router_data["traffic_rates"] = (
-                self._calculate_interface_rates(
-                    {"lan_stats": fresh_lan_stats}
-                )
+            self.router_data["traffic_rates"] = self._calculate_interface_rates(
+                {"lan_stats": fresh_lan_stats}
             )
-
-
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update router and connected-host data."""
@@ -331,22 +317,16 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                 return self.hosts
 
         except InvalidSessionException as exception:
-            raise UpdateFailed(
-                "Session is no longer valid"
-            ) from exception
+            raise UpdateFailed("Session is no longer valid") from exception
 
         except AccessRestrictionException as exception:
-            raise ConfigEntryAuthFailed(
-                "Access restricted"
-            ) from exception
+            raise ConfigEntryAuthFailed("Access restricted") from exception
 
         except (
             AuthenticationException,
             UnauthorizedException,
         ) as exception:
-            raise ConfigEntryAuthFailed(
-                "Invalid credentials"
-            ) from exception
+            raise ConfigEntryAuthFailed("Invalid credentials") from exception
 
         except (
             TimeoutError,
@@ -355,9 +335,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             LoginConnectionException,
             LoginTimeoutException,
         ) as exception:
-            raise UpdateFailed(
-                "Failed to connect to the router"
-            ) from exception
+            raise UpdateFailed("Failed to connect to the router") from exception
 
         except LoginRetryErrorException as exception:
             raise UpdateFailed(
@@ -365,14 +343,10 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
             ) from exception
 
         except MaximumSessionCountException as exception:
-            raise UpdateFailed(
-                "Maximum session count reached"
-            ) from exception
+            raise UpdateFailed("Maximum session count reached") from exception
 
         except Exception as exception:
-            self.logger.exception(
-                "Unexpected error updating Sagemcom router"
-            )
+            self.logger.exception("Unexpected error updating Sagemcom router")
             raise UpdateFailed(
                 f"Error communicating with API: {exception}"
             ) from exception

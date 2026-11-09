@@ -1,11 +1,10 @@
-
 """Sensors for Sagemcom F@st routers."""
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
+import re
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -14,7 +13,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
@@ -24,6 +22,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -161,7 +160,8 @@ def _connected_host_count(data: dict) -> int:
 def _active_host_count(data: dict) -> int:
     """Count active hosts reported by the router."""
     return sum(
-        1 for host in _hosts(data)
+        1
+        for host in _hosts(data)
         if host.get("active") is True
         or str(host.get("active", "")).lower() in ("true", "1", "yes")
     )
@@ -170,7 +170,8 @@ def _active_host_count(data: dict) -> int:
 def _inactive_host_count(data: dict) -> int:
     """Count inactive hosts reported by the router."""
     return sum(
-        1 for host in _hosts(data)
+        1
+        for host in _hosts(data)
         if host.get("active") is False
         or str(host.get("active", "")).lower() in ("false", "0", "no")
     )
@@ -194,6 +195,7 @@ def _total_interface_counter(
     valid = [value for value in values if value is not None]
 
     return sum(valid) if valid else None
+
 
 def _lan_status(data: dict) -> str | None:
     """Return a summary of LAN interface status."""
@@ -310,6 +312,7 @@ def _wifi_ssid_status(data, ssid):
 
     return "Unknown"
 
+
 @dataclass(frozen=True, kw_only=True)
 class SagemcomSensorDescription(SensorEntityDescription):
     """Describe a Sagemcom sensor."""
@@ -368,12 +371,9 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d: _number(
-            _device(d).get("temperature", {}).get("current")
-        ),
+        value_fn=lambda d: _number(_device(d).get("temperature", {}).get("current")),
     ),
-
-    #Memory Sensors
+    # Memory Sensors
     SagemcomSensorDescription(
         key="memory_total",
         name="Total memory",
@@ -399,7 +399,7 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("cachedMemory")),
     ),
-    #Flash Storage
+    # Flash Storage
     SagemcomSensorDescription(
         key="flash_total",
         name="Total flash memory",
@@ -417,7 +417,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfInformation.KILOBYTES,
         value_fn=lambda d: _integer(_device_info(d).get("freeFlashMemory")),
     ),
-
     # LAN interface counters.
     SagemcomSensorDescription(
         key="lan_status",
@@ -425,7 +424,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         icon="mdi:ethernet",
         value_fn=_lan_status,
     ),
-
     # LAN IPv4 address
     SagemcomSensorDescription(
         key="lan_ipv4_address",
@@ -490,7 +488,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         icon="mdi:wan",
         value_fn=lambda d: _get_section(d, "wan_status").get("status"),
     ),
-
     # WAN connection uptime
     SagemcomSensorDescription(
         key="wan_connection_time",
@@ -501,7 +498,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.SECONDS,
         value_fn=lambda d: _wan_connection_time(d),
     ),
-
     # WAN Ethernet link speed
     SagemcomSensorDescription(
         key="wan_bitrate",
@@ -510,7 +506,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement="Mbit/s",
         value_fn=lambda d: _wan_bitrate(d),
     ),
-
     # WAN IPv4 address
     SagemcomSensorDescription(
         key="wan_ipv4_address",
@@ -562,7 +557,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_inactive_host_count,
     ),
-
     # Connected USB device count
     SagemcomSensorDescription(
         key="usb_devices",
@@ -573,7 +567,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=_usb_device_count,
     ),
-
     # Wifi - for both 2.4GHz and 5GHz: Split into Radio, SSID, guest and private
     # 2.4 GHz radio
     SagemcomSensorDescription(
@@ -605,7 +598,6 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement="Mbps",
         value_fn=lambda d: _wifi_bitrate(d, "24"),
     ),
-
     # 2.4 GHz private SSID
     SagemcomSensorDescription(
         key="wifi_24_private_status",
@@ -650,23 +642,20 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         native_unit_of_measurement="Mbps",
         value_fn=lambda d: _wifi_bitrate(d, "5"),
     ),
-
-      # 5 GHz private SSID
+    # 5 GHz private SSID
     SagemcomSensorDescription(
         key="wifi_5_private_status",
         name="Wi-Fi 5 GHz Private Status",
         icon="mdi:wifi",
         value_fn=lambda d: _wifi_ssid_status(d, "5"),
     ),
-
-     # 5 GHz guest SSID
+    # 5 GHz guest SSID
     SagemcomSensorDescription(
         key="wifi_5_guest_status",
         name="Wi-Fi 5 GHz Guest Status",
         icon="mdi:wifi-star",
         value_fn=lambda d: _wifi_ssid_status(d, "guest5"),
     ),
-
     # Wifi Mesh
     # Mesh.
     SagemcomSensorDescription(
@@ -674,18 +663,14 @@ SENSORS: tuple[SagemcomSensorDescription, ...] = (
         name="Mesh backhaul quality",
         icon="mdi:access-point-network",
         entity_registry_enabled_default=False,
-        value_fn=lambda d: (
-            _mesh_info(d).get("backhaul", {}).get("linkQuality")
-        ),
+        value_fn=lambda d: (_mesh_info(d).get("backhaul", {}).get("linkQuality")),
     ),
     SagemcomSensorDescription(
         key="mesh_backhaul_type",
         name="Mesh backhaul type",
         icon="mdi:access-point-network",
         entity_registry_enabled_default=False,
-        value_fn=lambda d: (
-            _mesh_info(d).get("backhaul", {}).get("linkType")
-        ),
+        value_fn=lambda d: (_mesh_info(d).get("backhaul", {}).get("linkType")),
     ),
 )
 
@@ -697,9 +682,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Sagemcom F@st sensors."""
 
-    data: HomeAssistantSagemcomFastData = (
-        hass.data[DOMAIN][entry.entry_id]
-    )
+    data: HomeAssistantSagemcomFastData = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         SagemcomFastSensor(
@@ -734,25 +717,19 @@ class SagemcomFastSensor(
         self.entity_description = description
         self.gateway = gateway
 
-        self._attr_unique_id = (
-            f"{gateway.serial_number}_{description.key}"
-        )
+        self._attr_unique_id = f"{gateway.serial_number}_{description.key}"
 
     @property
     def native_value(self):
         """Return the sensor value."""
 
-        return self.entity_description.value_fn(
-            self.coordinator.router_data
-        )
+        return self.entity_description.value_fn(self.coordinator.router_data)
 
     @property
     def device_info(self) -> DeviceInfo:
         """Link the sensor to the router device."""
         return DeviceInfo(
-            identifiers={
-                (DOMAIN, self.gateway.serial_number)
-            },
+            identifiers={(DOMAIN, self.gateway.serial_number)},
             manufacturer=self.gateway.manufacturer,
             model=self.gateway.model_name,
             name=" ".join(
@@ -762,7 +739,8 @@ class SagemcomFastSensor(
                     self.gateway.model_number,
                 )
                 if part
-            ) or "Sagemcom F@st",
+            )
+            or "Sagemcom F@st",
             sw_version=self.gateway.software_version,
             configuration_url=(
                 f"{'https' if self.coordinator.ssl else 'http'}://"
