@@ -18,7 +18,7 @@ def create_client(
     encryption_method: EncryptionMethod,
     ssl: bool,
     verify_ssl: bool,
-) -> tuple[SagemcomClient, ClientSession | None]:
+) -> tuple[SagemcomClient, ClientSession | None, ApiMode]:
     """Return a client and the session the caller must detach, if it owns one."""
     if encryption_method is EncryptionMethod.NONE:
         # REST firmware keeps its session in a cookie set by an IP address,
@@ -48,4 +48,4 @@ def create_client(
         ssl=ssl,
         api_mode=api_mode,
     )
-    return client, owned_session
+    return client, owned_session, api_mode

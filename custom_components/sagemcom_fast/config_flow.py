@@ -58,7 +58,7 @@ async def async_validate_input(
     LOGGER.debug("Detected encryption method: %s", encryption_method)
 
     # Validate with the same client setup the config entry will use.
-    client, owned_session = create_client(
+    client, owned_session, _ = create_client(
         hass,
         host=host,
         username=username,
