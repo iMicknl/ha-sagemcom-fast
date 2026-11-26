@@ -12,6 +12,7 @@ Sagemcom F@st routers are used by many providers worldwide, but many of them did
 
 - Device Tracker, to track connected devices to your router (WiFi and Ethernet)
 - Reboot button, to reboot your gateway from Home Assistant
+- Guest WiFi switches (2.4 GHz and 5 GHz), to see and toggle the guest network
 
 ## Known limitations / issues
 
@@ -64,6 +65,7 @@ Have a look at the table below for more information about supported devices. The
 | Sagemcom F@st 5655V2  | MásMóvil             | md5                   |                               |
 | Sagemcom F@st 5657IL  |                      | md5                   |                               |
 | Speedport Pro         | Telekom              | md5                   | username: admin               |
+| Sagemcom F@st 5670    | Cellcom              | md5                   |                               |
 
 > Contributions welcome. If you router model is supported by this package, but not in the list above, please create [an issue](https://github.com/iMicknl/ha-sagemcom-fast/issues/new) or directly pull request.
 
