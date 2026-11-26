@@ -45,8 +45,37 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.data = {}
         self.hosts: dict[str, Device] = {}
+        # SSID uid -> {"enable": bool, "band": "2.4GHz" | "5GHz" | None}
+        self.guest_wifi: dict[int, dict] = {}
         self.client = client
         self.logger = logger
+
+    async def _async_get_guest_wifi(self) -> dict[int, dict]:
+        """Return the guest SSIDs, or nothing when the router does not expose them."""
+        try:
+            data = await self.client.get_values_by_xpaths(
+                {"ssids": "Device/WiFi/SSIDs", "radios": "Device/WiFi/Radios"},
+                ignore_unknown_paths=True,
+            )
+            bands = {
+                f"Device/WiFi/Radios/Radio[@uid='{radio['uid']}']": radio.get(
+                    "operating_frequency_band"
+                )
+                for radio in data["radios"] or []
+            }
+            # shortcut: guest SSIDs are found by "guest" in their alias, add an
+            # explicit uid option if a router names them differently.
+            return {
+                ssid["uid"]: {
+                    "enable": bool(ssid.get("enable")),
+                    "band": bands.get(ssid.get("lower_layers")),
+                }
+                for ssid in data["ssids"] or []
+                if "guest" in str(ssid.get("alias", "")).lower()
+            }
+        except Exception as exception:
+            self.logger.debug("Guest WiFi not available: %s", exception)
+            return {}
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Update hosts data."""
@@ -56,6 +85,7 @@ class SagemcomDataUpdateCoordinator(DataUpdateCoordinator):
                     await self.client.login()
                     await asyncio.sleep(1)
                     hosts = await self.client.get_hosts(only_active=True)
+                    self.guest_wifi = await self._async_get_guest_wifi()
                 finally:
                     await self.client.logout()
 

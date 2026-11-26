@@ -12,6 +12,7 @@ Sagemcom F@st routers are used by many providers worldwide, but many of them did
 
 - Device Tracker, to track connected devices to your router (WiFi and Ethernet)
 - Reboot button, to reboot your gateway from Home Assistant
+- Guest WiFi switches (2.4 GHz and 5 GHz), to see and toggle the guest network
 
 ## Known limitations / issues
 
